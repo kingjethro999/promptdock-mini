@@ -20,7 +20,7 @@ Build mode: fast (agent implements end to end; learner is full-stack and drives 
   Commit: `Add project scaffold with thought shell and local storage`
   Evidence: Next 16.3.8 / React 19.2 / Tailwind v4 scaffold; `npx tsc --noEmit` clean; `npx eslint app components lib scripts` clean; `npx tsx scripts/storage-smoke.ts` 22/22 assertions; `next dev` serves HTTP 200 with the disabled guard and pre-hydration theme script present (dev server landed on port 3001 — port 3000 was occupied by the old reference app's dev server).
 
-- [ ] **2. The provider path is proved with real JSON**
+- [x] **2. The provider path is proved with real JSON** ✅ verified
   Becomes usable: a script you can run that calls apmix → groq → gemini and prints a real parsed response with latency and which provider answered. No UI.
   Why now: this is the riskiest unknown in the spec — *does a free provider accept a `system` role and return structured JSON?* Deciding it before any UI exists is the spec's stated exception: a layer that independently proves a critical risk and leaves runnable evidence. The learner's required order puts the provider chain ahead of prompts and UI.
   PRD ref: `prd.md > What We're Building`, `prd.md > Shaping`
@@ -29,6 +29,7 @@ Build mode: fast (agent implements end to end; learner is full-stack and drives 
   Verify (mechanical): `npx tsx scripts/probe-ai.ts` exits 0 with valid JSON from at least one provider; force a failure (bad base URL) and confirm it falls through the chain and reports a typed error instead of hanging.
   Learner check: Run the probe yourself and read what comes back — is it structure, or prose pretending to be structure?
   Commit: `Prove AI provider chain returns structured JSON`
+  Evidence: `npx tsx --env-file-if-exists=.env scripts/probe-ai.ts` → apmix (`claude-sonnet-4-6-free`, 5.1s), groq (`openai/gpt-oss-120b`, 0.8s), gemini (`gemini-2.5-flash`, 1.3s) all return parseable JSON; forced apmix failure falls through to groq. Observations that changed the plan: the `.env` `APMIX_MODEL` was stale (API only serves `claude-sonnet-4-6-free` on this key) — corrected; apmix and gemini wrap output in ```json fences even when `response_format` is sent, so `extractJson()` (fence + prose stripping) was added to `lib/ai.ts` and the route layer will use it plus `response_format: json_object`.
 
 - [ ] **3. Your shape and build prompts hold the contract**
   Becomes usable: `shape` reliably returns dynamic fields tagged known/inferred and at most one question across very different rough thoughts; `build` returns prompt text with no chat preamble.
