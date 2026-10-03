@@ -7,9 +7,20 @@ interface ThoughtInputProps {
   onChange: (value: string) => void;
   onSubmit: (thought: string) => void;
   busy?: boolean;
+  label?: string;
+  rows?: number;
+  placeholder?: string;
 }
 
-export function ThoughtInput({ value, onChange, onSubmit, busy = false }: ThoughtInputProps) {
+export function ThoughtInput({
+  value,
+  onChange,
+  onSubmit,
+  busy = false,
+  label = "What are you trying to do?",
+  rows = 5,
+  placeholder = "e.g. an app for tracking what I lend people so I stop forgetting who has what",
+}: ThoughtInputProps) {
   const ready = isUsableThought(value);
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -22,15 +33,15 @@ export function ThoughtInput({ value, onChange, onSubmit, busy = false }: Though
   return (
     <div className="flex flex-col gap-3">
       <label htmlFor="thought" className="text-sm font-semibold text-muted">
-        What are you trying to do?
+        {label}
       </label>
       <textarea
         id="thought"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={handleKeyDown}
-        rows={5}
-        placeholder="e.g. an app for tracking what I lend people so I stop forgetting who has what"
+        rows={rows}
+        placeholder={placeholder}
         className="w-full resize-y rounded-xl border border-line bg-panel px-4 py-3 text-base text-fg placeholder:text-muted focus:border-green focus:outline-none"
       />
       <div className="flex items-center justify-between gap-4">

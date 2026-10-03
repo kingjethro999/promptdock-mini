@@ -142,11 +142,19 @@ export interface CompleteOptions {
   providers?: ProviderName[];
 }
 
-export async function complete(
+interface ChainResult<T> {
+  value: T;
+  provider: ProviderName;
+  model: string;
+  latencyMs: number;
+}
+
+async function runChain<T>(
   system: string,
   user: string,
-  options: CompleteOptions = {},
-): Promise<Completion> {
+  options: CompleteOptions,
+  transform: (text: string) => T,
+): Promise<ChainResult<T>> {
   const timeoutMs = options.timeoutMs ?? requestTimeoutMs();
   const order = options.providers ?? providerOrder();
   const attempts: ProviderAttempt[] = [];
@@ -169,15 +177,50 @@ export async function complete(
     const started = Date.now();
     const result = await postChat(config, body, timeoutMs);
     if (result.ok) {
-      return {
-        text: result.content,
-        provider: config.name,
-        model: config.model,
-        latencyMs: Date.now() - started,
-      };
+      try {
+        return {
+          value: transform(result.content),
+          provider: config.name,
+          model: config.model,
+          latencyMs: Date.now() - started,
+        };
+      } catch (error) {
+        attempts.push({
+          provider: config.name,
+          reason: `parse: ${error instanceof Error ? error.message : String(error)}`,
+        });
+        continue;
+      }
     }
     attempts.push({ provider: config.name, reason: result.reason });
   }
 
   throw new AiUnavailableError(attempts);
+}
+
+export async function complete(
+  system: string,
+  user: string,
+  options: CompleteOptions = {},
+): Promise<Completion> {
+  const chain = await runChain(system, user, options, (text) => text);
+  return {
+    text: chain.value,
+    provider: chain.provider,
+    model: chain.model,
+    latencyMs: chain.latencyMs,
+  };
+}
+
+/**
+ * Like `complete`, but a transform failure (e.g. schema validation) is treated
+ * the same as a transport failure: the chain falls through to the next provider.
+ */
+export async function completeParsed<T>(
+  system: string,
+  user: string,
+  options: CompleteOptions & { parse: (text: string) => T },
+): Promise<ChainResult<T>> {
+  const { parse, ...rest } = options;
+  return runChain(system, user, rest, parse);
 }

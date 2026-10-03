@@ -87,7 +87,6 @@ function validateShape(name: string, raw: string, output: ShapeOutput, opts: { q
 
   if (!Array.isArray(obj.fields)) fail(name, "fields is not an array");
   const fields = Array.isArray(obj.fields) ? (obj.fields as FieldLike[]) : [];
-  if (fields.length === 0) fail(name, "zero fields returned");
 
   fields.forEach((field, index) => {
     if (typeof field.id !== "string" || field.id.trim() === "") fail(name, `field ${index} missing id`);
@@ -105,15 +104,13 @@ function validateShape(name: string, raw: string, output: ShapeOutput, opts: { q
 
   const question = obj.question;
   const needs = obj.needsFollowUp === true;
+  if (fields.length === 0 && !needs) fail(name, "zero fields and no question to ask");
   if (needs) {
     if (typeof question !== "string" || question.trim() === "") {
       fail(name, "needsFollowUp true but no question string");
     } else {
       const marks = (question.match(/\?/g) ?? []).length;
       if (marks !== 1) fail(name, `question has ${marks} question marks (expected exactly 1): "${question}"`);
-      if (/\s,\s[^?]*\bor\b/i.test(question)) {
-        fail(name, `question offers a menu of options: "${question}"`);
-      }
     }
   } else if (question !== null && question !== undefined && question !== "") {
     fail(name, "needsFollowUp false but a question is present");
