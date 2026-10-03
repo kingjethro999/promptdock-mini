@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prompt Dock Mini — Technical Spec</title>
+<style>
+  :root{
+    --paper:#f7f8f3; --card:#fdfdfa; --ink:#1c3829; --body:#3d4a41;
+    --muted:#6b776e; --line:#e3e6dc; --green:#1c6b4a; --green-soft:#e9f6d8;
+    --lime:#d6f57e; --amber:#8a6410; --amber-soft:#f7efdd; --rose:#8d3b34;
+    --sans:Manrope,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --max:960px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#12291d; --card:#183324; --ink:#e8efe6; --body:#c3d2c5;
+      --muted:#8fa393; --line:#2b4a36; --green:#7ecb9b; --green-soft:#1d3d2a;
+      --amber:#d9b96a; --amber-soft:#2a3a24; --rose:#e0a49c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--green)}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  header.site{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:56px}
+  .brand{font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .brand span{font-weight:600;color:var(--muted)}
+  nav.top{display:flex;gap:16px;flex-wrap:wrap}
+  nav.top a{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-decoration:none}
+  nav.top a:hover{color:var(--ink)}
+  .hero{padding:56px 0 28px}
+  h1{font-size:clamp(30px,5vw,44px);line-height:1.1;letter-spacing:-.03em;color:var(--ink);margin:0 0 12px}
+  .lede{font-size:18px;color:var(--body);max-width:64ch}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+  .tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:4px 10px}
+  .tag.on{background:var(--lime);border-color:transparent;color:#1c3829;font-weight:700}
+  h2{font-size:24px;letter-spacing:-.02em;color:var(--ink);margin:52px 0 6px}
+  h2 .pill{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--green);color:var(--green);border-radius:999px;padding:2px 8px;vertical-align:middle;margin-left:8px;font-weight:600}
+  h3{font-size:17px;color:var(--ink);margin:26px 0 6px;letter-spacing:-.01em}
+  p{margin:8px 0}
+  .src{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em;margin-top:2px}
+  .diagram{margin:20px 0 6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .diagram svg{display:block;width:100%;height:auto}
+  figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+  pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--body);margin:12px 0 0}
+  pre b{color:var(--green);font-weight:700}
+  pre i{color:var(--muted);font-style:normal}
+  details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:10px}
+  summary{cursor:pointer;padding:13px 16px;font-weight:700;color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";font-family:var(--mono);color:var(--green);font-size:16px}
+  details[open] summary::after{content:"–"}
+  details .body{padding:0 16px 16px}
+  ul{margin:6px 0;padding-left:20px}
+  li{margin:5px 0}
+  .checks{list-style:none;padding-left:0}
+  .checks li{padding-left:26px;position:relative;margin:7px 0}
+  .checks li::before{content:"[ ]";position:absolute;left:0;font-family:var(--mono);font-size:12px;color:var(--green)}
+  .checks li.flag::before{content:"⚑";color:var(--amber)}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .cardish{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+  .why{font-size:14.5px;color:var(--body);margin-top:14px;padding-left:12px;border-left:3px solid var(--lime)}
+  .fail{border-left:3px solid var(--rose)}
+  .fail .k{color:var(--rose)}
+  .ok{border-left:3px solid var(--green)}
+  .ok .k{color:var(--green)}
+  .flagbox{background:var(--amber-soft);border:1px solid var(--amber);border-radius:14px;padding:18px 20px;margin-top:18px}
+  .flagbox .k{color:var(--amber)}
+  .flagbox h3{margin-top:0;color:var(--ink)}
+  .principle{margin-top:34px;background:var(--ink);color:#eef3ec;border-radius:14px;padding:24px 26px;font-size:19px;letter-spacing:-.01em;line-height:1.45}
+  .principle b{color:var(--lime)}
+  footer{margin-top:64px;border-top:1px solid var(--line);padding:26px 0 60px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap bar">
+    <div class="brand">Prompt Dock Mini <span>/ SPEC</span></div>
+    <nav class="top">
+      <a href="#journey">Journey</a>
+      <a href="#stack">Stack</a>
+      <a href="#run">Run it</a>
+      <a href="#components">Components</a>
+      <a href="#data">Data</a>
+      <a href="#files">Files</a>
+      <a href="#decisions">Decisions</a>
+      <a href="#build">Build</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section class="hero">
+  <h1>Prompt Dock Mini — Technical Spec</h1>
+  <p class="lede">How one page, two AI calls, and one browser-storage slot turn a messy thought into a copy-pasteable prompt — with the API key kept on the server where it belongs.</p>
+  <div class="meta">
+    <span class="tag on">status: approved</span>
+    <span class="tag">prd → spec</span>
+    <span class="tag">next.js · app router · ts</span>
+    <span class="tag">tailwind</span>
+    <span class="tag">apmix → groq → gemini</span>
+    <span class="tag">no db · no auth</span>
+    <span class="tag">key stays server-side</span>
+  </div>
+</section>
+
+<h2 id="how">How This Works, In Plain Language</h2>
+
+<p>Prompt Dock Mini is one web page with a very small brain attached.</p>
+
+<p>You open the page and see a big empty box. You type a messy thought — <em>"make something that helps me prepare for a football trial"</em> — and press <b>Shape this</b>. The page sends that sentence off to an AI model, and the model sends back a short structured answer: not a paragraph of chat, but a small list of things it understood — a goal, an audience, an output — each one labelled either <b>known</b> (you said this) or <b>inferred</b> (I guessed this from what you wrote).</p>
+
+<p>Those labels come back as chips on your screen. You can click any chip and fix it. If the model found a gap that would actually change the result — not a nitpick, a real fork in the road — it returns <b>one</b> question. You answer it, it looks again, and it may ask a second. Never a third-plus-one: after <b>three</b> questions it stops asking and marks whatever's left as an assumption it can show you.</p>
+
+<p>When it's finished understanding, you press <b>Build prompt</b>. The second AI call takes your thought, the understanding, and your answers, and writes the actual prompt — a real, copy-pasteable prompt for another AI. That prompt lands in a tall editor you can edit yourself, with one <b>Copy</b> button.</p>
+
+<div class="grid2" style="margin-top:18px">
+  <div class="cardish ok">
+    <span class="k">Stored</span>
+    <p><b>The dock</b> — thought, understanding, answers, prompt — lands in browser local storage the moment a prompt is successfully built. Ten of them, newest first. Not your hard drive, not a server: same browser, same device.</p>
+    <p><b>Your theme</b> — light or dark — the same way.</p>
+  </div>
+  <div class="cardish fail">
+    <span class="k">Never stored, never sent</span>
+    <p><b>Your API key.</b> The page talks to <i>your own</i> Next.js server; the server talks to the AI provider. The key is one environment variable on the server, and Vercel never exposes it to the browser.</p>
+  </div>
+</div>
+
+<p class="why"><b>Why this shape and not something bigger?</b> One page, two AI calls, one storage slot. Every extra service — a database, accounts, a queue — would be a thing that can break in front of a reviewer, and none of them would prove the idea. The idea is <i>a messy thought becomes a good prompt.</i> That's it.</p>
+
+<h2 id="journey">The Core Journey Through the System</h2>
+<p class="src">Implements prd.md &gt; The Core Journey</p>
+
+<ol>
+  <li><b>The user opens <code>/</code>.</b> The server renders the initial shell — an empty thought box with <b>Shape this</b> disabled (fewer than 3 non-whitespace characters). <b>The server never touches local storage</b>; it can't. Two client steps follow: a tiny pre-hydration script reads <code>pmd.theme</code> and sets <code>data-theme</code> on <code>&lt;html&gt;</code> <i>before</i> React hydrates, so the right theme paints first instead of flashing; then, after hydration, Recent docks are read client-side and rendered (or nothing, if there are none).</li>
+  <li><b>They type and press Shape this</b> (or Cmd/Ctrl+Enter). The client checks the 3-character guard, sets the button to <i>Shaping…</i>, and POSTs the thought to <b><code>/api/shape</code></b>.</li>
+  <li><b><code>/api/shape</code> runs on the server.</b> It reads the keys from <code>process.env</code> — never from the client — builds a request with your system prompt, and calls the provider chain: <b>apmix → groq → gemini</b>, 12s timeout, at most 2 fallbacks. It parses the JSON, validates it against the contract, and returns it.</li>
+  <li><b>The page grows downward.</b> The thought compacts to an editable <i>Your thought</i> field; chips render under <i>What I understood</i>. Known chips are plain; inferred chips get the sparkle and dotted underline. Editing an inferred chip by hand flips it to known in local state.</li>
+  <li><b>If a question came back</b>, it renders inline beneath the chips. The user answers, presses <i>Continue</i>, and the thought + interpretation + <i>all previous answers</i> go back to <code>/api/shape</code>. Gaps re-evaluate: either a new question comes back, or <code>questions</code> comes back empty and <b>Build prompt</b> renders. The counter never exceeds 3.</li>
+  <li><b>They press Build prompt.</b> Button reads <i>Building…</i>, editing is visually paused, and the settled payload POSTs to <b><code>/api/build</code></b>. Same chain, same timeout.</li>
+  <li><b>The prompt appears</b> in a tall editable editor. This is also where the dock is written — a successful response creates or updates a row in local storage. Failure writes nothing.</li>
+  <li><b>Copy</b> reads the editor's live contents to the clipboard and briefly reads <i>Copied</i>. It does <b>not</b> save.</li>
+  <li><b>Sync rule.</b> A flag tracks whether the generated prompt has been hand-edited: <i>untouched</i> → editing a chip re-calls <code>/api/build</code> and the prompt visibly changes with an <i>✦ Updated</i> cue. <i>Hand-edited</i> → chip edits never touch the prompt; the UI shows <i>"Understanding changed."</i> with an <b>Update prompt</b> button. The flag is <b>saved with the dock and restored with it</b>, so reopening a dock keeps exactly the protection it had when it was closed.</li>
+  <li><b>They close the tab and come back</b> → the theme and the Recent docks list restore from local storage, and the page starts on the <b>normal empty thought screen</b>. Nothing auto-resumes: clicking a Recent dock restores it into its editable state, not forked — one click, so no <code>pmd.currentDockId</code> to keep in sync.</li>
+</ol>
+
+<figure class="diagram" aria-label="Architecture flow">
+<svg viewBox="0 0 940 320" role="img" aria-labelledby="at ad">
+  <title id="at">Request architecture</title>
+  <desc id="ad">The browser holds the React UI and local storage, and never sees API keys. It posts to Next.js route handlers on the server, which read keys from environment variables and call the apmix, groq, then gemini providers over chat completions, returning chips or a prompt as JSON.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8a8578"/>
+    </marker>
+    <marker id="al" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1c6b4a"/>
+    </marker>
+  </defs>
+
+  <!-- browser -->
+  <rect x="14" y="40" width="240" height="170" rx="14" fill="#fdfdfa" stroke="#d8d2c4"/>
+  <text x="134" y="68" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14.5" font-weight="800" fill="#1c3829">Browser</text>
+  <rect x="34" y="84" width="200" height="34" rx="8" fill="#f7f8f3" stroke="#d8d2c4"/>
+  <text x="134" y="105" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" fill="#1c3829">React UI (one page)</text>
+  <rect x="34" y="126" width="200" height="34" rx="8" fill="#e9f6d8" stroke="#1c6b4a"/>
+  <text x="134" y="147" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" fill="#16603f">localStorage · 10 docks</text>
+  <rect x="34" y="168" width="200" height="30" rx="8" fill="#f9e9e6" stroke="#d0a49c"/>
+  <text x="134" y="188" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#8d3b34">no API key, ever</text>
+
+  <!-- boundary -->
+  <line x1="300" y1="24" x2="300" y2="286" stroke="#8d3b34" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <text x="300" y="304" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#8d3b34">the key never crosses this line</text>
+
+  <!-- server -->
+  <rect x="340" y="40" width="250" height="170" rx="14" fill="#fdfdfa" stroke="#1c6b4a"/>
+  <text x="465" y="68" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14.5" font-weight="800" fill="#1c3829">Next.js server</text>
+  <rect x="360" y="84" width="210" height="34" rx="8" fill="#f7f8f3" stroke="#d8d2c4"/>
+  <text x="465" y="105" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">app/api/shape/route.ts</text>
+  <rect x="360" y="126" width="210" height="34" rx="8" fill="#f7f8f3" stroke="#d8d2c4"/>
+  <text x="465" y="147" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">app/api/build/route.ts</text>
+  <rect x="360" y="168" width="210" height="30" rx="8" fill="#e9f6d8" stroke="#1c6b4a"/>
+  <text x="465" y="188" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#16603f">process.env · keys read here</text>
+
+  <!-- arrows browser <-> server -->
+  <line x1="256" y1="112" x2="334" y2="112" stroke="#1c6b4a" stroke-width="1.8" marker-end="url(#al)"/>
+  <text x="295" y="103" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#1c6b4a">POST</text>
+  <line x1="334" y1="150" x2="256" y2="150" stroke="#1c6b4a" stroke-width="1.8" marker-end="url(#al)"/>
+  <text x="295" y="168" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#1c6b4a">JSON</text>
+
+  <!-- providers -->
+  <rect x="660" y="40" width="250" height="170" rx="14" fill="#f7efdd" stroke="#d9b96a"/>
+  <text x="785" y="68" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14.5" font-weight="800" fill="#1c3829">AI providers</text>
+  <rect x="680" y="84" width="210" height="34" rx="8" fill="#fdfdfa" stroke="#d8d2c4"/>
+  <text x="785" y="105" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">1 · apmix  deepseek-v4</text>
+  <rect x="680" y="126" width="210" height="34" rx="8" fill="#fdfdfa" stroke="#d8d2c4"/>
+  <text x="785" y="147" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">2 · groq  gpt-oss-120b</text>
+  <rect x="680" y="168" width="210" height="30" rx="8" fill="#fdfdfa" stroke="#d8d2c4"/>
+  <text x="785" y="188" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">3 · gemini</text>
+
+  <line x1="592" y1="112" x2="654" y2="112" stroke="#8a8578" stroke-width="1.8" marker-end="url(#ar)"/>
+  <text x="623" y="103" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b776e">chat/</text>
+  <line x1="654" y1="150" x2="592" y2="150" stroke="#8a8578" stroke-width="1.8" marker-end="url(#ar)"/>
+  <text x="623" y="168" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b776e">JSON</text>
+
+  <!-- timing note -->
+  <rect x="14" y="246" width="896" height="30" rx="8" fill="#e9f6d8" stroke="#1c6b4a"/>
+  <text x="462" y="266" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#16603f">12s timeout per attempt · max 2 fallbacks · parse or schema failure moves to the next provider</text>
+</svg>
+<figcaption>Every AI request is server-side. If all three providers fail, the user gets an inline <b>Try again</b> and their work stays exactly where it is.</figcaption>
+</figure>
+
+<h2 id="stack">Stack</h2>
+
+<table>
+  <tr><th style="width:26%">Choice</th><th style="width:30%">Version / detail</th><th>Why</th></tr>
+  <tr><td><b>Next.js</b> (App Router)</td><td>v15.x, <code>create-next-app</code> default</td><td>Binding constraint from the PRD: one deployable app, no separate backend. App Router gives route handlers at <code>app/api/*/route.ts</code> for free.</td></tr>
+  <tr><td><b>TypeScript</b></td><td>strict mode</td><td>Binding constraint. Catches contract drift in the JSON the model returns — exactly the failure this app is prone to.</td></tr>
+  <tr><td><b>React</b></td><td>bundled with Next 15</td><td>One surface with several conditional blocks.</td></tr>
+  <tr><td><b>Tailwind CSS</b></td><td>v4</td><td>Your pick: <i>"tailwind nextjs default."</i> Pairs with <code>create-next-app --tailwind</code>; no config file needed in v4.</td></tr>
+  <tr><td><b>AI calls</b></td><td>raw <code>fetch</code> → <code>POST {base}/chat/completions</code></td><td>All three providers are OpenAI-compatible, so <b>one</b> request shape covers them. No SDK → fewer dependencies, fewer version surprises.</td></tr>
+  <tr><td><b>No DB, no ORM, no auth</b></td><td>—</td><td>Local storage only, per <code>prd.md &gt; Recent docks</code>.</td></tr>
+  <tr><td><b>Vercel</b></td><td>optional deploy</td><td>Your choice; env vars set in the dashboard, <code>.env</code> stays gitignored.</td></tr>
+</table>
+
+<p class="src">Docs: <a href="https://nextjs.org/docs/app">Next.js App Router</a> · <a href="https://nextjs.org/docs/app/building-your-application/routing/route-handlers">Route Handlers</a> · <a href="https://nextjs.org/docs/app/building-your-application/typescript">Next.js + TypeScript</a> · <a href="https://tailwindcss.com/docs">Tailwind CSS v4</a> · <a href="https://vercel.com/docs/environment-variables">Vercel env vars</a></p>
+
+<p class="why"><b>Unverified — check early in the build:</b> exact current Next.js and Tailwind major versions at install time, and confirm <code>deepseek-v4-flash-free</code> on APMIX accepts the standard OpenAI <code>/chat/completions</code> shape with a <code>system</code> role message. First build step, before any UI.</p>
+
+<h2 id="run">Where It Runs and How Someone Tries It</h2>
+
+<div class="grid2">
+  <div class="cardish">
+    <span class="k">Runtime</span>
+    <p>Node.js 20+ for the dev server and server routes; the UI is a normal browser page. Installed: <b>Node 24.18.0</b>, <b>npm 12.2.0</b>. Requires one AI provider key.</p>
+  </div>
+  <div class="cardish">
+    <span class="k">For the demo recording</span>
+    <p>Record against <code>localhost:3000</code>. Submission needs a <b>1–3 minute video</b> plus a <b>public GitHub repo</b> — neither requires a live deployment.</p>
+  </div>
+</div>
+
+<h3>Environment</h3>
+<p>A <code>.env</code> at the project root, already gitignored:</p>
+<pre><b>APMIX_API_KEY</b>=
+<b>APMIX_BASE_URL</b>=https://api.apmix.ai/v1
+<b>APMIX_MODEL</b>=deepseek-v4-flash-free
+<b>GROQ_API_KEY</b>=
+<b>GROQ_MODEL</b>=openai/gpt-oss-120b
+<b>GEMINI_API_KEY</b>=
+
+<i># only keys used by Mini are listed; the existing root .env already
+# carries all three — copy what you need, never commit them.</i></pre>
+
+<h3>Start it</h3>
+<pre>cd /home/king/Documents/promptdock-mini
+npm install
+npm run dev        <i># http://localhost:3000</i></pre>
+
+<p><b>Open:</b> <a href="http://localhost:3000">http://localhost:3000</a></p>
+
+<p>Optional deploy: <code>vercel</code>, with the same env vars under Project → Settings → Environment Variables. Never paste a key into the repo.</p>
+
+<h2>Look and Feel</h2>
+<p class="src">Carried forward from prd.md &gt; Look and Feel — no re-interviewing.</p>
+<ul>
+  <li><b>Light mode is the reference design.</b> Warm off-white/ivory surfaces (<code>#f7f8f3</code>), never pure white. Dark mode is a deliverable: deep green-black (<code>#12291d</code>), not neutral gray.</li>
+  <li><b>One accent</b> — calm muted green, carrying the sparkle, the inferred cue, and the primary button. No second semantic color.</li>
+  <li><b>Tailwind constraint:</b> colors expressed as CSS custom properties in <code>globals.css</code> mapped to Tailwind theme tokens, so <code>[data-theme="dark"]</code> swaps values without touching components. Tailwind <i>can</i> honor this; it doesn't need a fork of the design system.</li>
+  <li><b>Type:</b> Manrope via <code>next/font</code>, loaded once. Monospace only for small metadata — timestamps, the <code>✦</code> provenance note.</li>
+  <li><b>Hierarchy:</b> whitespace and type first, borders and cards second, color third. The thought and the prompt are the loudest things on screen.</li>
+  <li><b>Avoid:</b> purple/blue AI gradients, glow, glassmorphism, neon, floating sparkles, dashboard-widget grids.</li>
+  <li>Interface copy: quiet, plain, never congratulatory. The UI strings are already written in <code>prd.md</code> — use them verbatim.</li>
+</ul>
+
+<h2 id="components">Components</h2>
+<p class="src">Each has its own heading because 5-build builds and verifies them one at a time.</p>
+
+<details open><summary>ThemeToggle</summary><div class="body">
+  <p>Header-right button, cycles light/dark. Writes <code>theme</code> to local storage and sets <code>data-theme</code> on <code>&lt;html&gt;</code>. It does <b>not</b> read the stored value during render — that job belongs to the pre-hydration script from journey step 1, which applies the saved theme before React mounts. The toggle just re-writes it on click.</p>
+  <p class="src">PRD ref: prd.md &gt; Screens and Layout (item 1)</p>
+</div></details>
+
+<details><summary>ThoughtInput</summary><div class="body">
+  <p>The large multiline box. Emits its value; enforces the <b>3 non-whitespace character guard</b> (trim, then count) with <i>no</i> validation message — disabled state only. Supports Cmd/Ctrl+Enter. Submitting sets the button to <i>Shaping…</i> and blocks duplicates. After shaping, re-renders as the compact, relabelled <i>Your thought</i> field; resubmitting <b>discards old chips and re-shapes</b> rather than merging.</p>
+  <p class="src">PRD ref: First screen · Shaping</p>
+</div></details>
+
+<details><summary>Interpretation</summary><div class="body">
+  <p>Renders the chip set from <code>/api/shape</code>. <b>Only fields the model returned</b> — no fixed schema, no empty placeholders. Each chip: label, value, provenance. Known → plain. Inferred → <code>✦</code> + dotted underline + <code>title="Inferred from your thought"</code>. Click swaps the value to an inline input; a manual edit flips provenance to <b>known</b> in client state.</p>
+  <p class="src">PRD ref: Interpretation chips</p>
+</div></details>
+
+<details><summary>FollowUpQuestion</summary><div class="body">
+  <p>Inline block under the chips. Shows at most <b>one</b> question. <i>Continue</i> sends thought + interpretation + answers back to <code>/api/shape</code>. Keeps a <code>questionCount</code> in state: at <code>3</code>, never request again — mark unresolved gaps inferred and reveal <b>BuildPrompt</b>. Renders nothing when no question is pending.</p>
+  <p class="src">PRD ref: Follow-up questions — the Gap Rule</p>
+</div></details>
+
+<details><summary>BuildPrompt</summary><div class="body">
+  <p>Primary action, rendered <b>only</b> before a prompt exists — no question pending and no prompt on screen. There is no <i>rebuild is needed</i> state: an existing untouched prompt updates automatically when a chip changes, and an existing hand-edited prompt updates only via <b>Update prompt</b>, which lives in <b>PromptEditor</b>, not here. On press: <i>Building…</i>, interpretive editing visually paused, duplicate calls blocked. Handles both failure branches — first build vs. regeneration — with their distinct messages.</p>
+  <p class="src">PRD ref: Build prompt</p>
+</div></details>
+
+<details><summary>PromptEditor</summary><div class="body">
+  <p>Tall multiline editor holding the generated prompt. Owns <b>Copy</b> (clipboard + <i>Copied</i>, no persistence), the <b><code>promptEditedManually</code> flag</b> (set the moment the user types, cleared by a successful explicit <b>Update prompt</b>, and <b>persisted with the dock</b>), the out-of-sync banner <i>"Understanding changed."</i> + <b>Update prompt</b>, and the transient <i>✦ Updated</i> cue after an auto-regeneration. No generic <i>Rebuild prompt</i> action.</p>
+  <p class="src">PRD ref: Prompt editor and interpretation sync</p>
+</div></details>
+
+<details><summary>RecentDocks</summary><div class="body">
+  <p>Renders <b>only</b> when docks exist. Rows: auto-title + relative time + quiet delete. Click → restore that dock into the page as an editable state (no fork). Title rule: Goal → first ~6 meaningful words of the thought → <i>Untitled dock</i>.</p>
+  <p class="src">PRD ref: Recent docks</p>
+</div></details>
+
+<details><summary>app/api/shape/route.ts</summary><div class="body">
+  <p><b>Server-side.</b> Accepts <code>{ thought, interpretation?, answers[], questionCount }</code>. Builds the <code>shape</code> system prompt + user message, runs the provider chain, parses and validates the response, returns <code>{ fields[], question? }</code> or a structured error.</p>
+  <p class="src">Implements: Follow-up questions · Interpretation chips</p>
+</div></details>
+
+<details><summary>app/api/build/route.ts</summary><div class="body">
+  <p><b>Server-side.</b> Accepts <code>{ thought, interpretation, answers[] }</code>. Returns <code>{ prompt: string }</code> or a structured error. Writes nothing — the client owns persistence.</p>
+  <p class="src">Implements: Build prompt · Prompt editor and interpretation sync</p>
+</div></details>
+
+<details><summary>lib/ai.ts — the provider chain</summary><div class="body">
+  <p>One exported <code>complete(system, user)</code> that tries <b>apmix → groq → gemini</b>, 12s timeout (<code>AbortController</code>), max 2 fallbacks, all via <code>POST {base}/chat/completions</code> using <code>response_format: { type: "json_object" }</code> <b>only if the verification step confirms the provider accepts it</b> — otherwise structured output rests on the prompt contract plus schema validation. Falls through on non-2xx, timeout, or JSON parse failure. Throws one typed error the route turns into the PRD's inline message.</p>
+  <p><b>Never imported by a client component.</b> Build-time guard comment; all key reads stay inside route handlers.</p>
+  <p class="src">Docs: OpenAI Chat Completions reference</p>
+</div></details>
+
+<details><summary>lib/prompts/shape.ts &amp; build.ts — ⚑ contract binding either author</summary><div class="body">
+  <p><b>Either the agent or the learner may author these two files</b> (revised during build planning). Explicit build step (see Build Order, step 4). They export plain template strings. Whoever writes them, they are adversarially tested against 10 deliberately awkward thoughts and tightened against observed failures before any UI renders their output.</p>
+  <p><b><code>shape</code></b> must define the contract: raw thought in → structured JSON out; <b>dynamic</b> interpretation fields with irrelevant fields simply absent; every field tagged <code>known</code>/<code>inferred</code>; <b>no persistent <code>missing</code> state</b> anywhere; a flag for whether a materially important follow-up is required; <b>at most one</b> question; no prose outside the JSON; conservative, <i>visible</i> assumptions — never silently invented facts.</p>
+  <p><b><code>build</code></b> must define: thought + settled interpretation + answers in → final prompt text out, no chat preamble.</p>
+</div></details>
+
+<details><summary>lib/dock-storage.ts</summary><div class="body">
+  <p>Thin wrapper over <code>localStorage</code>. Keys: <code>pmd.docks</code> (array, capped at 10, newest first), <code>pmd.theme</code>. All reads/writes wrapped in <code>try/catch</code> — <b>a failed write preserves the session and simply doesn't persist</b>.</p>
+  <p class="src">Implements: Recent docks · States and Boundaries</p>
+</div></details>
+
+<h2 id="data">Data Model</h2>
+
+<table>
+  <tr><th style="width:16%">Datum</th><th style="width:26%">Where it lives</th><th style="width:26%">Updated when</th><th>On return</th></tr>
+  <tr><td><code>thought</code></td><td>state → localStorage on successful build</td><td>user types / reshapes</td><td>restored editable</td></tr>
+  <tr><td><code>interpretation.fields[]</code></td><td>state → localStorage</td><td>model returns it, or user edits a chip</td><td>restored with provenance intact</td></tr>
+  <tr><td><code>answers[]</code></td><td>state → localStorage</td><td>each <i>Continue</i> press</td><td>restored; re-send to <code>/api/shape</code> if reshaped</td></tr>
+  <tr><td><code>questionCount</code></td><td>state (persisted per dock)</td><td>each question shown</td><td>restored so the 3-cap survives reload</td></tr>
+  <tr><td><code>prompt</code></td><td>state → localStorage</td><td><code>/api/build</code> returns it</td><td>restored</td></tr>
+  <tr><td><code>promptEditedManually</code></td><td>state → <b>localStorage, with the dock</b></td><td><code>true</code> on user typing; <code>false</code> on generation and after a successful <b>Update prompt</b></td><td><b>restored as-is</b> — a reopened hand-edited prompt is still protected</td></tr>
+  <tr><td><code>dockId</code></td><td>localStorage</td><td>assigned on first successful build</td><td>same row updated on regeneration, never duplicated</td></tr>
+  <tr><td><code>theme</code></td><td>localStorage</td><td>toggle</td><td>restored</td></tr>
+</table>
+
+<h3>The dock object</h3>
+<pre>{ id, title, thought, fields[], answers[], questionCount, prompt, <b>promptEditedManually</b>, createdAt, updatedAt }</pre>
+
+<p><code>promptEditedManually</code> lifecycle: generated → <code>false</code>; user types into the editor → <code>true</code>; successful explicit <b>Update prompt</b> → <code>false</code>. Saved and restored with the dock, so a reopened dock re-enters the exact sync state it left in. Omitting it reintroduces the one failure the sync rule exists to prevent: <i>generated → hand-edited → saved → reopened → flag reads untouched → chip edit auto-regenerates → the user's edit is overwritten.</i></p>
+
+<p class="src"><b>All "restored" entries above mean <i>restored by clicking a Recent dock</i>.</b> On page load only the theme and the dock list come back; the screen starts empty (journey step 10).</p>
+
+<p class="why"><b>What travels over the network:</b> the thought, the interpretation, the answers. <b>What never does:</b> the API keys, the saved dock list, anything from local storage other than the current request's payload.</p>
+
+<h2 id="files">File Structure</h2>
+
+<pre>promptdock-mini/
+├── app/
+│   ├── api/
+│   │   ├── shape/route.ts        <i># POST: thought → chips + ≤1 question</i>
+│   │   └── build/route.ts        <i># POST: thought + interpretation → prompt</i>
+│   ├── globals.css               <i># CSS vars → Tailwind tokens; light/dark</i>
+│   ├── layout.tsx                <i># Manrope via next/font + shell markup</i>
+│   ├── theme-boot.tsx            <i># tiny pre-hydration script: sets data-theme</i>
+│   └── page.tsx                  <i># the single screen; owns top-level state</i>
+├── components/
+│   ├── ThemeToggle.tsx
+│   ├── ThoughtInput.tsx
+│   ├── Interpretation.tsx
+│   ├── FollowUpQuestion.tsx
+│   ├── BuildPrompt.tsx
+│   ├── PromptEditor.tsx
+│   └── RecentDocks.tsx
+├── lib/
+│   ├── ai.ts                     <i># provider chain: apmix → groq → gemini</i>
+│   ├── prompts/
+│   │   ├── shape.ts              <b># ⚑ first draft (agent or learner), tested against 10 inputs</b>
+│   │   └── build.ts              <b># ⚑ first draft (agent or learner), tested against 10 inputs</b>
+│   ├── dock-storage.ts           <i># localStorage wrapper, try/catch everywhere</i>
+│   └── types.ts                  <i># Field, Interpretation, Dock, ShapeResponse</i>
+├── devpost/                      <i># planning docs (scope, prd, spec, checklist)</i>
+├── .env                          <i># gitignored; keys live here</i>
+├── .gitignore
+├── next.config.ts
+├── tailwind / postcss config     <i># created by create-next-app --tailwind</i>
+├── package.json
+└── README.md</pre>
+
+<p class="src"><code>create-next-app</code> scaffolds the config files and <code>public/</code>; their contents aren't enumerated here.</p>
+
+<h2>External Services and Dependencies</h2>
+
+<table>
+  <tr><th style="width:20%">Service</th><th style="width:34%">Call</th><th style="width:20%">Keys</th><th>Cost / docs</th></tr>
+  <tr><td><b>APMIX</b> (primary)</td><td><code>POST https://api.apmix.ai/v1/chat/completions</code> · model <code>deepseek-v4-flash-free</code></td><td><code>APMIX_API_KEY</code></td><td>free-named model — <b>verify at build</b></td></tr>
+  <tr><td><b>Groq</b> (fallback 1)</td><td><code>POST https://api.groq.com/openai/v1/chat/completions</code> · <code>openai/gpt-oss-120b</code></td><td><code>GROQ_API_KEY</code></td><td>free tier, rate-limited</td></tr>
+  <tr><td><b>Gemini</b> (fallback 2)</td><td>via the OpenAI-compatible endpoint</td><td><code>GEMINI_API_KEY</code></td><td>free tier, rate-limited</td></tr>
+  <tr><td><b>Vercel</b> (optional)</td><td>deploy + env vars</td><td>—</td><td>free tier</td></tr>
+</table>
+
+<p><b>Provider chain — learner's choice:</b> <code>apmix → groq → gemini</code>, 12s timeout, max 2 fallbacks, reused from their existing configuration. <b>Tradeoff accepted:</b> three keys to configure on Vercel, in exchange for a demo that survives one provider being down.</p>
+
+<p><b>Nothing else external.</b> No database, no auth provider, no analytics, no CDN dependency — this document renders offline.</p>
+
+<p class="why"><b>Verify early, before any UI:</b> that APMIX's <code>/chat/completions</code> accepts a <code>system</code> role message, and that its free model returns valid JSON for a ~500-token instruction. Test <code>response_format</code> at the same time — <b>if it's unsupported, decide the schema-validation/retry strategy from what you observe rather than assuming it now.</b> If APMIX fails the base check, Groq is already wired as fallback #1.</p>
+
+<h2>Important Failure Modes</h2>
+<p class="src">The places this realistically breaks in front of a reviewer.</p>
+
+<div class="grid2">
+  <div class="cardish fail">
+    <span class="k">First /api/build fails</span>
+    <p>Timeout, provider error, unparseable JSON → interpretation stays on screen; inline <i>"Couldn't build the prompt."</i> + <b>Try again</b> + <i>"Your work is still here."</i> No dock written.</p>
+  </div>
+  <div class="cardish fail">
+    <span class="k">Regeneration fails</span>
+    <p>After a good prompt exists → the previous prompt stays intact and editable; inline <i>"Couldn't update the prompt."</i> + <b>Try again</b>. An error never replaces a working prompt.</p>
+  </div>
+  <div class="cardish fail">
+    <span class="k">Model returns prose instead of JSON</span>
+    <p><code>lib/ai.ts</code> fails parse and moves to the next provider; if all three fail, the same inline error path as above. User's text is never cleared.</p>
+  </div>
+  <div class="cardish fail">
+    <span class="k">Reopened dock loses protection</span>
+    <p>Prevented by persisting <code>promptEditedManually</code> with the dock. Without it, reopening a hand-edited prompt and editing a chip silently overwrites it. A <code>false</code> on restore is only ever set by an explicit, successful <b>Update prompt</b>.</p>
+  </div>
+  <div class="cardish fail">
+    <span class="k">localStorage write throws</span>
+    <p>Quota, private mode → caught, session continues, the dock isn't persisted next time. No error UI.</p>
+  </div>
+</div>
+
+<div class="cardish fail" style="margin-top:14px">
+  <span class="k">Model violates the contract</span>
+  <p>Returns a <code>missing</code>-style field, or two questions → schema validation in the route rejects the response and treats it as a parse failure, falling through the chain. <b>This is why the contract is validated, not trusted.</b></p>
+</div>
+
+<h2>What Was Simplified and Why</h2>
+
+<ul>
+  <li><b>No database</b> → localStorage, capped at 10 text docks. <span class="src">Accounts and a hosted store would add an account, a key, and a failure mode without proving the kernel.</span></li>
+  <li><b>No silent provider-swap UI</b> → a fallback that buys nothing when the PRD already gives the user a working <b>Try again</b>. <span class="src">One request path is one thing to debug.</span></li>
+  <li><b>No streaming</b> → wait for the complete JSON/prompt. <span class="src">Streaming complicates both the parse and the sync rule for zero demo value.</span></li>
+  <li><b>No SDK</b> (<code>openai</code>, <code>ai</code>) → raw <code>fetch</code>. <span class="src">One request shape covers all three providers.</span></li>
+  <li><b>No separate <i>Rebuild prompt</i></b> → untouched regenerates automatically, hand-edited gets <b>Update prompt</b>. <span class="src">Your decision in the PRD review — a third verb needed alternate generations first.</span></li>
+  <li><b>No onboarding, example cards, template gallery</b> → the box. <span class="src">prd.md &gt; Non-Goals.</span></li>
+</ul>
+
+<h2 id="decisions">Decisions and Open Issues</h2>
+
+<h3>Learner decisions (consequential, chosen)</h3>
+<ul>
+  <li><b>Next.js App Router + TypeScript</b>, one deployable app, no separate backend — binding constraint carried from the PRD.</li>
+  <li><b>AI only through server-side routes</b>; credentials never reach the browser — same source.</li>
+  <li><b>Tailwind</b> as the styling system (<i>"tailwind nextjs default"</i>).</li>
+  <li><b>Provider chain <code>apmix → groq → gemini</code></b>, 12s timeout, max 2 fallbacks — <i>"keep fallbacks"</i>; reused rather than invented.</li>
+  <li><b><code>npm run dev</code> locally for the recording; Vercel optional.</b></li>
+  <li><b><code>shape</code> and <code>build</code> may be authored by either party</b> (revised during build planning: the agent may write them too). Ownership was never a product requirement; the 10-input adversarial test and the contract are.</li>
+</ul>
+
+<h3>Implementation details derived from those choices</h3>
+<p>Not separate learner decisions: route-handler file layout, <code>lib/ai.ts</code> as a single <code>complete()</code> helper, <code>promptEditedManually</code> as the persisted sync flag, CSS custom properties under Tailwind tokens, and schema validation before returning to the client. Whether <code>response_format</code> is used at all is an open verification result, not an assumption.</p>
+
+<div class="flagbox">
+  <span class="k">⚑ The one useful unknown — and it's the right one</span>
+  <h3>Does a hand-written system prompt actually return a stable contract?</h3>
+  <p>The whole interpretation UI depends on getting dynamic fields, correct <code>known</code>/<code>inferred</code> tags, at most one question, and zero prose back from a model — <b>every time</b>, across very different thoughts. That can't be reasoned into existence; it has to be <b>tested against deliberately awkward inputs</b> ("asdf", "help me with my thing", a 900-word ramble, a prompt-shaped request that could be mistaken for an instruction) and tightened.</p>
+  <p>That test-and-tighten loop is scheduled as an explicit build step and is squarely the prompt-engineering skill this hackathon is meant to teach. <b>Agreed evidence of done:</b> ten varied rough thoughts all return parseable, correctly-tagged JSON with ≤1 question, <i>without the agent editing the prompt's core contract.</i></p>
+</div>
+
+<h3>Open issues</h3>
+<p>None carried from <code>prd.md &gt; Open Questions</code> — it has none. Two things to verify early in the build, neither blocking spec approval: current Next/Tailwind versions at install time, and APMIX's <code>/chat/completions</code> accepting a <code>system</code> role message — plus whether it accepts <code>response_format</code>. <b>That last one is deliberately left open:</b> the response is schema-validated before it reaches the client either way, and the validation/retry path is chosen from observed behaviour rather than assumed here.</p>
+
+<h2 id="build">Build Order <span class="pill">what 5-build will slice</span></h2>
+
+<ul class="checks">
+  <li>Scaffold <code>create-next-app</code> (App Router, TS, Tailwind) → runs on <code>npm run dev</code>.</li>
+  <li><code>lib/types.ts</code> + <code>lib/dock-storage.ts</code> with a smoke test.</li>
+  <li><b><code>lib/ai.ts</code> provider chain</b> — prove a real JSON response comes back from APMIX/Groq/Gemini <i>before</i> any UI exists.</li>
+  <li class="flag"><b>Write <code>shape.ts</code> and <code>build.ts</code>.</b> Test <code>shape</code> against 10 varied rough thoughts; inspect failures; tighten. Agent may author them; the test-and-tighten loop is mandatory either way.</li>
+  <li><code>/api/shape</code> and <code>/api/build</code> route handlers + schema validation.</li>
+  <li>Static page shell: <code>layout.tsx</code>, <code>globals.css</code>, <code>ThemeToggle</code>, <code>ThoughtInput</code> with the 3-char guard.</li>
+  <li><code>Interpretation</code> + <code>FollowUpQuestion</code> + the 3-question cap.</li>
+  <li><code>BuildPrompt</code> + <code>PromptEditor</code> + the <code>promptEditedManually</code> sync rule, persisted and restored with the dock.</li>
+  <li><code>RecentDocks</code> + post-hydration client load + auto-title rule + click-to-restore (no auto-resume on reload).</li>
+  <li>Failure states, dark mode pass, and the full demo path end to end.</li>
+</ul>
+
+<div class="principle">
+  The key never crosses the line between your browser and your server. <b>That's the whole security shape of this app in one sentence.</b>
+</div>
+
+<footer>
+  <b>promptdock-mini / devpost / spec.md + spec.html</b> — approved by the learner after review. Canonical source: <code>devpost/spec.md</code>; this HTML is the review rendering.
+</footer>
+
+</div>
+</body>
+</html>

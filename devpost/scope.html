@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt Dock Mini — Scope</title>
+<style>
+  :root{
+    --bg:#faf9f7; --ink:#16150f; --muted:#6b675e; --line:#e2ded4;
+    --card:#ffffff; --accent:#1c6b4a; --accent-soft:#e7f1ec;
+    --amber:#8a6410; --amber-soft:#f7efdd; --rose:#8d3b34; --rose-soft:#f8e9e7;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+    --serif:ui-serif,Georgia,"Iowan Old Style",serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:17px;line-height:1.6;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:56px 24px 96px}
+  header.top{border-bottom:1px solid var(--line);padding-bottom:28px;margin-bottom:40px}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px
+  }
+  h1{font-family:var(--serif);font-size:clamp(34px,6vw,52px);line-height:1.05;margin:0 0 16px;font-weight:600;letter-spacing:-.02em}
+  .oneline{font-size:20px;line-height:1.5;color:var(--ink);margin:0;max-width:62ch}
+  h2{
+    font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin:52px 0 18px;padding-bottom:8px;border-bottom:1px solid var(--line)
+  }
+  p{margin:0 0 16px;max-width:70ch}
+  strong{font-weight:650}
+  em{font-style:italic}
+  .lede{font-family:var(--serif);font-size:23px;line-height:1.45;max-width:56ch}
+  blockquote{
+    margin:22px 0;padding:16px 20px;background:var(--card);border-left:3px solid var(--accent);
+    font-family:var(--serif);font-size:18px;line-height:1.55;color:#33312a
+  }
+  blockquote p:last-child{margin-bottom:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:0 0 18px}
+  .card h3{margin:0 0 8px;font-size:16px;letter-spacing:-.01em}
+  .card p:last-child{margin-bottom:0}
+
+  /* diagram */
+  figure.diagram{
+    margin:26px 0 8px;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:22px 18px 14px;overflow-x:auto
+  }
+  figure.diagram svg{display:block;width:100%;min-width:640px;height:auto}
+  figcaption{
+    font-family:var(--mono);font-size:11.5px;color:var(--muted);text-align:center;
+    margin-top:12px;letter-spacing:.04em
+  }
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-top:10px}
+  .legend span{font-family:var(--mono);font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  /* loop */
+  ol.loop{list-style:none;counter-reset:step;padding:0;margin:0}
+  ol.loop li{
+    counter-increment:step;position:relative;padding:0 0 22px 52px;border-left:2px solid var(--line);
+    margin-left:14px
+  }
+  ol.loop li:last-child{border-left-color:transparent;padding-bottom:0}
+  ol.loop li::before{
+    content:counter(step);position:absolute;left:-15px;top:-2px;width:28px;height:28px;border-radius:50%;
+    background:var(--accent-soft);color:var(--accent);font-family:var(--mono);font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)
+  }
+  ol.loop li h4{margin:0 0 5px;font-size:17px}
+  ol.loop li p{margin:0;color:#3d3a33;font-size:16px}
+
+  /* states */
+  .states{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}
+  .state{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .state .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .state .name{font-family:var(--serif);font-size:20px;margin:6px 0 6px}
+  .state p{font-size:14.5px;color:#4a473f;margin:0}
+  .state.raw{border-top:3px solid #b9b2a3}
+  .state.interp{border-top:3px solid var(--amber)}
+  .state.final{border-top:3px solid var(--accent)}
+  @media(max-width:640px){.states{grid-template-columns:1fr}}
+
+  /* chip mock */
+  .chipmock{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin:22px 0}
+  .chipmock .raw{font-family:var(--serif);font-size:17px;color:#4a473f;font-style:italic;margin-bottom:16px}
+  .chip{
+    display:inline-flex;align-items:baseline;gap:7px;background:#f4f2ec;border:1px solid var(--line);
+    border-radius:999px;padding:5px 13px;margin:0 7px 8px 0;font-size:14.5px
+  }
+  .chip b{font-weight:650;color:#2c2a24}
+  .chip .val{color:#4a473f}
+  .chip.inferred{border-style:dashed;border-color:#d9b96a;background:var(--amber-soft)}
+  .chip.missing{border-color:#d9a49e;background:var(--rose-soft)}
+  .spark{color:var(--amber);font-size:12px}
+  .chipnote{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:12px}
+  .arrow{color:var(--muted);text-align:center;font-size:18px;margin:6px 0 14px}
+
+  /* proof */
+  .proof{background:#12140f;color:#e9e7df;border-radius:14px;padding:26px 24px;margin:22px 0;font-family:var(--mono);font-size:14.5px;line-height:1.7}
+  .proof .lbl{color:#8fbfa7;letter-spacing:.08em;font-size:11px;text-transform:uppercase;display:block;margin-bottom:6px}
+  .proof .step{margin-bottom:18px}
+  .proof .step:last-child{margin-bottom:0}
+  .proof del{color:#e08a80;text-decoration-thickness:1.5px}
+  .proof ins{color:#7fd0a5;text-decoration:none;border-bottom:1.5px solid #7fd0a5}
+  .proof .quote{color:#cfcbc0}
+
+  /* reveals */
+  details{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;margin:0 0 12px;overflow:hidden
+  }
+  details[open]{border-color:#cfc9bc}
+  summary{
+    cursor:pointer;padding:15px 20px;font-size:16px;font-weight:600;list-style:none;
+    display:flex;align-items:center;gap:12px;user-select:none
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::before{
+    content:"+";font-family:var(--mono);font-weight:400;font-size:17px;color:var(--muted);
+    width:18px;text-align:center;transition:transform .15s
+  }
+  details[open] summary::before{content:"\2212"}
+  .badge{
+    margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px;font-weight:600
+  }
+  .badge.now{background:var(--accent-soft);color:var(--accent)}
+  .badge.later{background:var(--amber-soft);color:var(--amber)}
+  .badge.cut{background:var(--rose-soft);color:var(--rose)}
+  .body{padding:0 20px 18px 50px}
+  .body ul{margin:0;padding-left:18px}
+  .body li{margin-bottom:9px;font-size:16px}
+  .body li b{display:block;font-weight:650}
+  .body li span{color:#4a473f;font-size:15px}
+  .body p{font-size:15.5px;color:#4a473f}
+
+  .persona{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+  @media(max-width:640px){.persona{grid-template-columns:1fr}}
+  .persona .card{margin:0}
+  .persona .who{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 7px}
+  .persona .said{font-family:var(--serif);font-style:italic;font-size:17px;line-height:1.45;margin:0;color:#2c2a24}
+
+  .kern{
+    background:linear-gradient(180deg,#fff,#fdfcf9);border:1px solid var(--ink);border-radius:14px;
+    padding:26px 26px 22px;margin:0 0 8px;position:relative
+  }
+  .kern::after{
+    content:"THE KERNEL";position:absolute;top:-9px;left:22px;background:var(--bg);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;padding:0 8px;color:var(--ink)
+  }
+  .kern p{font-family:var(--serif);font-size:20px;line-height:1.5;margin:0 0 12px;max-width:56ch}
+  .kern .cut-test{font-family:var(--sans);font-size:15px;color:var(--muted);margin:0;border-top:1px dashed var(--line);padding-top:12px}
+
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.7}
+  footer code{background:#f0eee8;padding:1px 5px;border-radius:4px}
+  .toc{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:22px}
+  .toc a{color:var(--muted);text-decoration:none;border-bottom:1px solid transparent}
+  .toc a:hover{color:var(--ink);border-bottom-color:var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">Devpost Learn · scope.md · status: approved</p>
+  <h1>Prompt Dock Mini</h1>
+  <p class="oneline">A tiny tool that turns a messy, half-formed intention into a precise, editable AI prompt — by showing you its interpretation <em>before</em> it writes the prompt.</p>
+  <nav class="toc">
+    <a href="#kernel">Kernel</a><a href="#who">Who</a><a href="#loop">Core loop</a>
+    <a href="#gaprule">Gap rule</a>
+    <a href="#states">States</a><a href="#identity">Identity</a><a href="#working">Working</a>
+    <a href="#boundary">Boundary</a><a href="#plan">Now / Later / Cut</a>
+  </nav>
+</header>
+
+<h2 id="kernel">The Unique Kernel</h2>
+<div class="kern">
+  <p><strong>The interpretation is the product, not the prompt.</strong> Mini pauses in the middle and shows you what it <em>thinks you meant</em> — Goal, Audience, Constraints, Output — as small editable pieces, and lets you correct them before the final prompt exists.</p>
+  <p class="cut-test"><strong>Cut test:</strong> delete that middle step and Prompt Dock Mini becomes indistinguishable from every other “paste text → get fancy prompt” generator. That's how we know it's the kernel.</p>
+</div>
+<blockquote>
+  <p>“It's almost a tiny intention compiler. The rough thought is the source language. Mini parses it into meaning. Then it compiles that meaning into a prompt.”</p>
+</blockquote>
+
+<h2 id="who">Who It's For</h2>
+<p><strong>Somebody who already uses AI and keeps getting mediocre results — because there's a gap between what they mean and what they type.</strong> Not prompt engineers; they'd never be marketed to. Their shared trait: <em>they think in intentions, not prompts.</em></p>
+<div class="persona">
+  <div class="card"><p class="who">The developer</p><p class="said">“Build authentication.” “Fix this mobile view.”</p></div>
+  <div class="card"><p class="who">The designer</p><p class="said">Knows the feeling, hasn't found the words an image model needs.</p></div>
+  <div class="card"><p class="who">The student / job seeker</p><p class="said">“Help me understand this.” “Make my CV fit this role but don't lie.”</p></div>
+  <div class="card"><p class="who">The person writing to someone</p><p class="said">“Help me say this without sounding weird.”</p></div>
+</div>
+<p>Today they hand-type a thin prompt and accept the weak result — or rewrite and retry four or five times until it's good enough.</p>
+
+<h2 id="loop">The Core Loop</h2>
+
+<figure class="diagram" aria-label="Flow from intention holder through thought, interpretation and prompt">
+  <svg viewBox="0 0 780 340" role="img" aria-labelledby="dtitle ddesc">
+    <title id="dtitle">Prompt Dock Mini core loop</title>
+    <desc id="ddesc">A person with an intention writes a messy thought. Mini parses it into an editable interpretation, asks a gated follow-up question only when a fact materially changes the result, then compiles a prompt into an editor. Correcting an interpretation piece visibly updates the prompt. Recent docks are kept locally in the browser.</desc>
+    <defs>
+      <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#8a8578"/>
+      </marker>
+      <marker id="arwg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#1c6b4a"/>
+      </marker>
+    </defs>
+
+    <!-- user -->
+    <rect x="14" y="128" width="132" height="84" rx="12" fill="#f4f2ec" stroke="#d8d2c4"/>
+    <text x="80" y="158" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.4" fill="#6b675e">THE USER</text>
+    <text x="80" y="180" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#16150f">Thinks in</text>
+    <text x="80" y="198" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#16150f">intentions</text>
+
+    <!-- THINK -->
+    <rect x="184" y="26" width="180" height="96" rx="12" fill="#ffffff" stroke="#cfc9bc"/>
+    <rect x="184" y="26" width="180" height="4" rx="2" fill="#b9b2a3"/>
+    <text x="200" y="52" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1.6" fill="#6b675e">01 · THINK</text>
+    <text x="200" y="76" font-family="ui-monospace,monospace" font-size="11.5" fill="#4a473f">“What are you trying</text>
+    <text x="200" y="93" font-family="ui-monospace,monospace" font-size="11.5" fill="#4a473f">to get done?”</text>
+    <text x="200" y="113" font-family="Georgia,serif" font-size="12.5" font-style="italic" fill="#8a8578">Messy is fine.</text>
+
+    <!-- SHAPE -->
+    <rect x="404" y="26" width="200" height="96" rx="12" fill="#ffffff" stroke="#d9b96a"/>
+    <rect x="404" y="26" width="200" height="4" rx="2" fill="#8a6410"/>
+    <text x="420" y="52" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1.6" fill="#8a6410">02 · SHAPE</text>
+    <text x="420" y="74" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13.5" fill="#16150f">“This is what I think</text>
+    <text x="420" y="92" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13.5" fill="#16150f">you meant.”</text>
+    <text x="420" y="112" font-family="ui-monospace,monospace" font-size="10.5" fill="#8a6410">editable · known / inferred</text>
+
+    <!-- PROMPT -->
+    <rect x="634" y="26" width="132" height="96" rx="12" fill="#ffffff" stroke="#1c6b4a"/>
+    <rect x="634" y="26" width="132" height="4" rx="2" fill="#1c6b4a"/>
+    <text x="650" y="52" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1.6" fill="#1c6b4a">03 · PROMPT</text>
+    <text x="650" y="76" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13.5" fill="#16150f">Editor</text>
+    <text x="650" y="96" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13.5" fill="#16150f">Copy it —</text>
+    <text x="650" y="113" font-family="Georgia,serif" font-size="12.5" font-style="italic" fill="#6b675e">it's yours.</text>
+
+    <!-- user -> think -->
+    <line x1="146" y1="150" x2="200" y2="112" stroke="#8a8578" stroke-width="1.6" marker-end="url(#arw)"/>
+    <!-- think -> shape -->
+    <line x1="364" y1="74" x2="402" y2="74" stroke="#8a8578" stroke-width="1.6" marker-end="url(#arw)"/>
+    <!-- shape -> prompt -->
+    <line x1="604" y1="74" x2="632" y2="74" stroke="#1c6b4a" stroke-width="1.8" marker-end="url(#arwg)"/>
+
+    <!-- gated follow-up loop -->
+    <path d="M504 122 L504 158 L382 158 L382 74" fill="none" stroke="#d9b96a" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arw)"/>
+    <rect x="396" y="140" width="230" height="30" rx="8" fill="#f7efdd" stroke="#d9b96a"/>
+    <text x="408" y="160" font-family="ui-monospace,monospace" font-size="11" fill="#8a6410">gated follow-up · only if it matters</text>
+
+    <!-- correction feedback -->
+    <path d="M700 122 L700 214 L504 214" fill="none" stroke="#1c6b4a" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arwg)"/>
+    <rect x="508" y="198" width="234" height="30" rx="8" fill="#e7f1ec" stroke="#1c6b4a"/>
+    <text x="520" y="218" font-family="ui-monospace,monospace" font-size="11" fill="#1c6b4a">correct a chip → prompt updates</text>
+
+    <!-- shape box (interpretation detail) -->
+    <rect x="184" y="196" width="180" height="112" rx="12" fill="#ffffff" stroke="#d8d2c4"/>
+    <text x="200" y="220" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1.6" fill="#6b675e">INTERPRETATION</text>
+    <rect x="198" y="232" width="66" height="20" rx="10" fill="#f4f2ec" stroke="#d8d2c4"/>
+    <text x="231" y="246" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="11" fill="#4a473f">Goal</text>
+    <rect x="270" y="232" width="76" height="20" rx="10" fill="#f4f2ec" stroke="#d8d2c4"/>
+    <text x="308" y="246" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="11" fill="#4a473f">Audience</text>
+    <rect x="198" y="258" width="76" height="20" rx="10" fill="#f7efdd" stroke="#d9b96a" stroke-dasharray="4 3"/>
+    <text x="236" y="272" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="11" fill="#8a6410">Constraints</text>
+    <rect x="282" y="258" width="66" height="20" rx="10" fill="#f4f2ec" stroke="#d8d2c4"/>
+    <text x="315" y="272" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="11" fill="#4a473f">Priority</text>
+    <text x="200" y="298" font-family="ui-monospace,monospace" font-size="10" fill="#8a6410">✻ inferred from your words</text>
+    <line x1="274" y1="150" x2="274" y2="194" stroke="#8a8578" stroke-width="1.6" marker-end="url(#arw)"/>
+
+    <!-- recent docks -->
+    <rect x="184" y="322" width="0" height="0" fill="none"/>
+    <rect x="404" y="252" width="200" height="76" rx="12" fill="#f4f2ec" stroke="#d8d2c4"/>
+    <text x="420" y="276" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1.6" fill="#6b675e">RECENT DOCKS</text>
+    <text x="420" y="298" font-family="ui-sans-serif,sans-serif" font-size="13" fill="#16150f">Browser local storage</text>
+    <text x="420" y="317" font-family="ui-sans-serif,sans-serif" font-size="13" fill="#4a473f">No accounts. No sync.</text>
+    <path d="M184 308 L404 308" fill="none" stroke="#8a8578" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#arw)"/>
+    <path d="M604 290 L660 290 L660 124" fill="none" stroke="#8a8578" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#arw)"/>
+  </svg>
+  <div class="legend">
+    <span><i class="swatch" style="background:#b9b2a3"></i>raw</span>
+    <span><i class="swatch" style="background:#8a6410"></i>interpreted &amp; editable</span>
+    <span><i class="swatch" style="background:#1c6b4a"></i>compiled / correctable</span>
+    <span><i class="swatch" style="background:#d9b96a"></i>gated follow-up</span>
+  </div>
+  <figcaption>Intention → messy thought → editable interpretation → prompt you own. Dashed lines are the two things that make it not-a-generator: gated questions, and correction that propagates.</figcaption>
+</figure>
+
+<ol class="loop">
+  <li><h4>Open it</h4><p>Near-empty screen: one large input, “What are you trying to get done?”, and underneath — quietly — “Messy is fine.” No welcome tour, no signup.</p></li>
+  <li><h4>Dump the thought</h4><p>Exactly as they'd message a friend. Messy is the point.</p></li>
+  <li><h4>Mini shows its understanding first</h4><p>The raw text shifts into compact editable pieces. Each carries provenance: <em>known</em> (you said it) or <em>inferred</em> (tiny sparkle / dotted underline — “Prompt Dock inferred this from your description”). Click any piece to correct it or add one.</p></li>
+  <li><h4>Gaps never appear as a state</h4><p>“Missing” exists only while Mini reasons. Every gap resolves before you see it: <strong>infer it</strong> when a reasonable assumption wouldn’t materially change the result, or <strong>ask</strong> when a wrong guess would. One question at a time, re-evaluated after each answer — <strong>hard ceiling of 3</strong>. After that, everything unresolved becomes a visible inferred assumption. Never a questionnaire.</p></li>
+  <li><h4>Build prompt</h4><p>Not a generic “Generate.” The final prompt lands in a real editor — something you own. Read it, edit it directly, copy it.</p></li>
+  <li><h4>Recent docks</h4><p>Local only, latest 10, newest first — written <strong>only after a successful generation</strong>. Stores the thought, interpreted fields with provenance, follow-up answers, the prompt, and a timestamp. Reopening restores an editable state rather than forking a copy. Auto-titled from the Goal. One delete button.</p></li>
+</ol>
+
+<h2>The Gap Rule <span style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:2px 8px;vertical-align:middle">locked</span></h2>
+<p>One signal — a hole in the interpretation — with exactly two expressions. <strong>“Missing” is never a state the user sees</strong>; it only exists while Mini is reasoning.</p>
+
+<figure class="diagram" id="gaprule" aria-label="Gap resolution rule flowchart">
+  <svg viewBox="0 0 760 300" role="img" aria-labelledby="gtitle gdesc">
+    <title id="gtitle">Gap resolution rule</title>
+    <desc id="gdesc">Missing information is evaluated: if a wrong assumption would not materially change the result, infer it and mark it inferred. If it would, ask the user one question at a time, re-evaluating after each answer, to a maximum of three questions, then infer the remainder.</desc>
+    <defs>
+      <marker id="garw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#8a8578"/>
+      </marker>
+    </defs>
+
+    <rect x="230" y="16" width="300" height="46" rx="10" fill="#ffffff" stroke="#d8d2c4"/>
+    <text x="380" y="44" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5" fill="#4a473f">Missing information · internal only</text>
+
+    <line x1="380" y1="62" x2="380" y2="88" stroke="#8a8578" stroke-width="1.6" marker-end="url(#garw)"/>
+
+    <rect x="176" y="90" width="408" height="46" rx="23" fill="#f7efdd" stroke="#d9b96a"/>
+    <text x="380" y="118" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14.5" fill="#16150f">Would a wrong assumption materially change the result?</text>
+
+    <path d="M240 136 L240 164" fill="none" stroke="#8a8578" stroke-width="1.6" marker-end="url(#garw)"/>
+    <path d="M520 136 L520 164" fill="none" stroke="#8a8578" stroke-width="1.6" marker-end="url(#garw)"/>
+    <text x="212" y="156" text-anchor="end" font-family="ui-monospace,monospace" font-size="12" fill="#6b675e">NO</text>
+    <text x="548" y="156" font-family="ui-monospace,monospace" font-size="12" fill="#6b675e">YES</text>
+
+    <rect x="130" y="166" width="220" height="44" rx="10" fill="#ffffff" stroke="#d9b96a" stroke-dasharray="5 4"/>
+    <text x="240" y="193" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14" fill="#16150f">Infer it</text>
+    <line x1="240" y1="210" x2="240" y2="234" stroke="#8a8578" stroke-width="1.6" marker-end="url(#garw)"/>
+    <rect x="130" y="236" width="220" height="44" rx="22" fill="#f7efdd" stroke="#d9b96a"/>
+    <text x="240" y="263" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5" fill="#8a6410">mark as inferred</text>
+
+    <rect x="420" y="166" width="250" height="44" rx="10" fill="#ffffff" stroke="#1c6b4a"/>
+    <text x="545" y="193" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14" fill="#16150f">Ask · one at a time</text>
+
+    <path d="M545 210 L545 224 L470 224 L470 236" fill="none" stroke="#8a8578" stroke-width="1.6" marker-end="url(#garw)"/>
+    <text x="560" y="232" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b675e">re-evaluate after every answer</text>
+
+    <rect x="420" y="236" width="250" height="44" rx="22" fill="#e7f1ec" stroke="#1c6b4a"/>
+    <text x="545" y="263" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5" fill="#1c6b4a">max 3 → then infer the rest</text>
+  </svg>
+  <figcaption>Two outcomes, one hard ceiling. An answer usually clears several gaps at once, so the count is a cap — not a quota.</figcaption>
+</figure>
+
+<div class="persona" style="margin-top:18px">
+  <div class="card"><p class="who">No questions</p><p class="said" style="font-style:normal;font-family:var(--sans);font-size:16px">“landing page for a bookkeeping app” → professional tone, responsive layout, common SaaS sections. All safe inferences.</p></div>
+  <div class="card"><p class="who">Asks</p><p class="said" style="font-style:normal;font-family:var(--sans);font-size:16px">“prepare me for my football trial” with no idea what to actually produce — training plan? nutrition? tactics? That choice changes everything downstream.</p></div>
+</div>
+
+
+<h2 id="states">The Three States</h2>
+<p>The interface changes state as the thought becomes concrete. The progression is <strong>Think → Shape → Prompt</strong> — not a stepper you click, something you feel.</p>
+<div class="states">
+  <div class="state raw"><div class="tag">State 01</div><div class="name">Raw</div><p>Your thought is the dominant object. Huge, unedited, yours.</p></div>
+  <div class="state interp"><div class="tag">State 02</div><div class="name">Interpretive</div><p>The product's understanding takes over. Editable pieces, subtle provenance.</p></div>
+  <div class="state final"><div class="tag">State 03</div><div class="name">Finished</div><p>The prompt becomes the dominant object — a thing you own and edit.</p></div>
+</div>
+
+<h2>The Interpretation, Up Close</h2>
+<div class="chipmock">
+  <div class="raw">“I want an app for tracking stuff I lend people because I always forget who has what”</div>
+  <div class="arrow">↓</div>
+  <span class="chip"><b>Goal</b><span class="val">design a lightweight lending tracker</span></span>
+  <span class="chip"><b>Users</b><span class="val">people lending everyday items to friends &amp; family</span></span>
+  <span class="chip"><b>Priority</b><span class="val">extremely fast entry</span></span>
+  <span class="chip"><b>Avoid</b><span class="val">inventory-management complexity</span></span>
+  <span class="chip inferred"><span class="spark">✻</span><b>Return date</b><span class="val">optional</span></span>
+  <div class="chipnote">✻ dotted = inferred by Prompt Dock from your words · click any chip to correct it · gaps never show as “missing” — they resolve to <em>inferred</em> or <em>ask</em></div>
+</div>
+
+<h2 id="identity">Inspiration &amp; Identity</h2>
+<div class="card">
+  <h3>Calm writing surface, not an AI product</h3>
+  <p>Reference: <strong>Cursor IDE</strong> (https://cursor.com) — the tool that made the learner think “I'd love to make something like that.”</p>
+  <p>Rejected out loud: purple-blue gradients, glowing neural-network imagery, five floating cards, “Supercharge your productivity with AI.”</p>
+</div>
+<div class="card">
+  <h3>One primary surface, lots of whitespace, strong typography</h3>
+  <p>The user's thought is dominant at the start; the interpretation takes over next; the finished prompt takes over last.</p>
+</div>
+<div class="card">
+  <h3>Speed is a design property</h3>
+  <p>One strong structured generation request returning JSON understanding + prompt draft. No multi-agent architecture — “if Mini takes thirty seconds because it runs six agents, the magic disappears.”</p>
+</div>
+<div class="card">
+  <h3>Examples that look imperfect</h3>
+  <p>A few rotating messy thoughts (“Try: I need help planning…”), never a template gallery. The examples themselves should look unfinished — that's the permission slip.</p>
+</div>
+
+<h2>Why This Matters to the Learner</h2>
+<blockquote>
+  <p>“I would like to properly understand / master prompt engineering in order to get tasks done efficiently without much revisions or hitting back and forth when working.”</p>
+</blockquote>
+<p>Building a tool whose entire job is structuring intent is the most direct route to that. They build with agents all day (Codex, Claude Code, Cursor, Antigravity) and have written <code style="font-family:var(--mono);font-size:14px">AGENTS.md</code> briefs in 47 files because they've felt the cost of a vague instruction firsthand. And they chose <strong>“for other people”</strong> as the hackathon goal — they want strangers to use it.</p>
+
+<h2 id="working">What “Working” Looks Like</h2>
+<div class="proof">
+  <div class="step"><span class="lbl">1 · The thought</span>
+    <span class="quote">“I want an app for tracking stuff I lend people because I always forget who has what.”</span></div>
+  <div class="step"><span class="lbl">2 · Mini shows its understanding</span>
+    Goal → lightweight personal lending tracker · Users → individuals lending everyday items to friends/family · Core behavior → record item, borrower, date, <strong>optional</strong> return date · Priority → extremely fast entry · Avoid → inventory-management complexity</div>
+  <div class="step"><span class="lbl">3 · The user corrects one thing</span>
+    Return date: <del>optional</del> <ins>must have expected return date</ins></div>
+  <div class="step"><span class="lbl">4 · The final prompt visibly updates → copy it</span>
+    A genuinely good coding-agent prompt, theirs to keep.</div>
+</div>
+<p><strong>Thought → understanding → correction → usable prompt</strong> is the whole video. No accounts, no settings, no provider selection.</p>
+<p><em>The “oh, that's cool” beat:</em> watching “make me a portfolio” sharpen into a real, specific, usable prompt — and realising the tool caught something you hadn't said out loud.</p>
+<div class="card">
+  <h3>Done means</h3>
+  <p>Running on <strong>Vercel</strong> with a live URL · public repo containing <code style="font-family:var(--mono);font-size:14px">scope.md</code>, <code style="font-family:var(--mono);font-size:14px">prd.md</code> and <code style="font-family:var(--mono);font-size:14px">spec.md</code> · a 1–3 minute screen recording of that loop end to end.</p>
+</div>
+
+<h2 id="boundary">The POC Boundary</h2>
+<p><strong>In, tightly:</strong></p>
+<ul style="max-width:70ch">
+  <li>One screen, three states: <strong>thought → interpretation → prompt</strong>.</li>
+  <li>One AI call per step: structured generation returning JSON understanding + prompt draft; gated follow-ups that regenerate.</li>
+  <li>Editable interpretation pieces with <strong>known / inferred</strong> provenance — gaps resolve before display.</li>
+  <li>Follow-up questions: <strong>one at a time, max 3 per dock</strong>, re-evaluated after each answer.</li>
+  <li>One primary action button: <strong>Build prompt</strong>.</li>
+  <li>Full-height prompt editor with <strong>copy</strong>.</li>
+  <li><strong>Recent docks</strong>: local storage, last 10, newest first, saved only on success, restores editable, auto-titled from Goal, deletable. No accounts, no sync.</li>
+  <li>Deployed to Vercel.</li>
+  <li>Planning docs in the repo.</li>
+</ul>
+
+<h2 id="plan">Now · Later · Cut</h2>
+
+<details open>
+  <summary>Now <span class="badge now">proof of concept</span></summary>
+  <div class="body">
+    <ul>
+      <li><b>Thought → interpretation → prompt</b><span>One screen, three states, no navigation during the core flow.</span></li>
+      <li><b>Editable interpretation chips</b><span>Known / inferred provenance, click to correct. Gaps resolve to inferred or a question.</span></li>
+      <li><b>Gated follow-ups</b><span>One sharp question at a time, only when the answer materially changes the prompt.</span></li>
+      <li><b>Build prompt → full editor → copy</b><span>The output should feel like an object you own, not a tiny card.</span></li>
+      <li><b>Recent docks (local)</b><span>Last 10, save on success only, restore editable, auto-title from Goal, delete. Continuity without accounts.</span></li>
+      <li><b>Vercel deploy + planning docs</b><span>Live URL for a “for other people” build; <code style="font-family:var(--mono)">scope.md</code>, <code style="font-family:var(--mono)">prd.md</code>, <code style="font-family:var(--mono)">spec.md</code> in the repo.</span></li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Later <span class="badge later">not now</span></summary>
+  <div class="body">
+    <ul>
+      <li><b>Regenerate for a different target</b><span>“Make this for ChatGPT / a coding agent / an image model / shorter / as a system instruction.” The architecture already supports it — the generated prompt is just one representation of the understanding object.</span></li>
+      <li><b>Voice capture of a thought</b></li>
+      <li><b>Accounts + cross-device sync</b></li>
+      <li><b>Prompt version history / restore / compare</b></li>
+      <li><b>Structure-strength control</b><span>How structured the output prompt reads.</span></li>
+      <li><b>Run the prompt against a provider</b></li>
+      <li><b>Template library, tags, search</b></li>
+      <li><b>The full Prompt Dock product</b><span>Sharing, public links, referrals, usage rewards, teams.</span></li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Explicitly cut <span class="badge cut">out</span></summary>
+  <div class="body">
+    <ul>
+      <li><b>Accounts, auth, email verification, sessions</b><span>— history is local only. The demo must open straight into the input; auth is a whole second product.</span></li>
+      <li><b>Public sharing / prompt links / referrals / invite rewards</b><span>— social growth mechanics. Nothing about the kernel needs another person to see it.</span></li>
+      <li><b>Provider selection and BYOK settings</b><span>— one backend AI path. Settings are not the argument; the argument is thought → understanding → prompt.</span></li>
+      <li><b>Template galleries and category browsing</b><span>— replaced by a few imperfect example thoughts. A gallery teaches the user to shop instead of think.</span></li>
+      <li><b>Multi-agent / multi-step pipeline</b><span>— one structured request plus gated follow-ups. Latency kills the magic and the architecture doesn't need it.</span></li>
+      <li><b>“Run prompt” / in-app chat with the result</b><span>— it pulls the demo toward a chatbot, the opposite of the point.</span></li>
+      <li><b>Onboarding tour and marketing copy</b><span>— the app opens on the input. No “Welcome to Prompt Dock Mini, your AI-powered prompt optimization companion.”</span></li>
+      <li><b>Library management in Recent docks</b><span>— renaming, folders, tags, search, pinning. Ten rows with a delete button is the whole feature.</span></li>
+      <li><b>A “missing” chip as a visible state</b><span>— gaps resolve to inferred or question before the user sees them. Three provenance states is a questionnaire with extra steps; two is a product.</span></li>
+    </ul>
+  </div>
+</details>
+
+<footer>
+  Canonical document: <code>devpost/scope.md</code> · status: approved<br>
+  This page is a companion for review only. If the two disagree, the Markdown wins.
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prompt Dock Mini — Product Requirements</title>
+<style>
+  :root{
+    --paper:#f7f8f3; --card:#fdfdfa; --ink:#1c3829; --body:#3d4a41;
+    --muted:#6b776e; --line:#e3e6dc; --green:#1c6b4a; --green-soft:#e9f6d8;
+    --lime:#d6f57e; --amber:#8a6410; --amber-soft:#f7efdd; --rose:#8d3b34;
+    --sans:Manrope,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --max:960px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#12291d; --card:#183324; --ink:#e8efe6; --body:#c3d2c5;
+      --muted:#8fa393; --line:#2b4a36; --green:#7ecb9b; --green-soft:#1d3d2a;
+      --amber:#d9b96a; --amber-soft:#2a3a24; --rose:#e0a49c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--green)}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  header.site{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:56px}
+  .brand{font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .brand span{font-weight:600;color:var(--muted)}
+  nav.top{display:flex;gap:16px;flex-wrap:wrap}
+  nav.top a{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-decoration:none}
+  nav.top a:hover{color:var(--ink)}
+  .hero{padding:56px 0 28px}
+  h1{font-size:clamp(30px,5vw,44px);line-height:1.1;letter-spacing:-.03em;color:var(--ink);margin:0 0 12px}
+  .lede{font-size:18px;color:var(--body);max-width:64ch}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+  .tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:4px 10px}
+  .tag.on{background:var(--lime);border-color:transparent;color:#1c3829;font-weight:700}
+  h2{font-size:24px;letter-spacing:-.02em;color:var(--ink);margin:52px 0 6px}
+  h2 .pill{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--green);color:var(--green);border-radius:999px;padding:2px 8px;vertical-align:middle;margin-left:8px;font-weight:600}
+  h3{font-size:17px;color:var(--ink);margin:26px 0 6px;letter-spacing:-.01em}
+  p{margin:8px 0}
+  .src{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em;margin-top:2px}
+  .diagram{margin:20px 0 6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .diagram svg{display:block;width:100%;height:auto}
+  figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+
+  /* stepper */
+  .stepper{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px}
+  .steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .steps button{font-family:var(--sans);font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--muted);border-radius:999px;padding:7px 13px;cursor:pointer;transition:.15s}
+  .steps button:hover{color:var(--ink);border-color:var(--green)}
+  .steps button[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  .screen{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;position:relative}
+  .screen .blk{transition:opacity .2s, transform .2s}
+  .screen .blk[data-off]{opacity:.22;filter:grayscale(1);pointer-events:none}
+  .sh{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin:0 0 8px}
+  .promptline{color:var(--ink);font-size:17px;font-weight:650;letter-spacing:-.01em;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:14px;margin:0}
+  .input{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-height:74px;color:var(--muted);font-size:14.5px}
+  .btn{display:inline-block;font-weight:700;font-size:13.5px;border-radius:9px;padding:8px 14px;border:1px solid transparent}
+  .btn.primary{background:var(--lime);color:#1c3829}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--body)}
+  .row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:10px}
+  .chipwrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13.5px}
+  .chip b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:2px}
+  .chip.inf{border-bottom:2px dotted var(--amber)}
+  .spark{color:var(--amber);font-size:11px}
+  .ask{background:var(--green-soft);border:1px solid var(--green);border-radius:12px;padding:12px 14px;margin-top:12px}
+  .ask .q{color:var(--ink);font-weight:650;margin:6px 0 8px}
+  .err{background:#f9e9e6;border:1px solid #e0b3ac;border-radius:12px;padding:12px 14px;margin-top:12px;color:var(--rose);font-size:14px}
+  .editor{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;min-height:120px;font-size:14.5px;color:var(--body);font-family:var(--mono);line-height:1.55}
+  .note{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:8px}
+  .dock{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+  .dockrow{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:7px 0;color:var(--body)}
+  .dockrow span{color:var(--muted);font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+  .statebox{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13.5px;color:var(--muted);background:var(--paper)}
+  .statebox.errbox{border-style:solid;border-color:#e0b3ac;background:#f9e9e6;color:var(--rose)}
+  .statebox.okbox{border-style:solid;border-color:var(--green);background:var(--green-soft);color:var(--green)}
+  .why{font-size:14.5px;color:var(--body);margin-top:14px;padding-left:12px;border-left:3px solid var(--lime)}
+
+  details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:10px}
+  summary{cursor:pointer;padding:13px 16px;font-weight:700;color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";font-family:var(--mono);color:var(--green);font-size:16px}
+  details[open] summary::after{content:"–"}
+  details .body{padding:0 16px 16px}
+  ul{margin:6px 0;padding-left:20px}
+  li{margin:5px 0}
+  .checks{list-style:none;padding-left:0}
+  .checks li{padding-left:24px;position:relative;margin:7px 0}
+  .checks li::before{content:"[ ]";position:absolute;left:0;font-family:var(--mono);font-size:12px;color:var(--green)}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .cardish{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+  .principle{margin-top:34px;background:var(--ink);color:#eef3ec;border-radius:14px;padding:24px 26px;font-size:19px;letter-spacing:-.01em;line-height:1.45}
+  .principle b{color:var(--lime)}
+  footer{margin-top:64px;border-top:1px solid var(--line);padding:26px 0 60px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap bar">
+    <div class="brand">Prompt Dock Mini <span>/ PRD</span></div>
+    <nav class="top">
+      <a href="#journey">Journey</a>
+      <a href="#walk">Walkthrough</a>
+      <a href="#screens">Screens</a>
+      <a href="#behavior">Behavior</a>
+      <a href="#states">States</a>
+      <a href="#boundary">Boundary</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section class="hero">
+  <h1>Prompt Dock Mini — Product Requirements</h1>
+  <p class="lede">A single-page tool that turns a messy, half-formed thought into a usable prompt by first showing its understanding in editable pieces, asking at most three questions when a wrong guess would matter, and compiling the result. Built for someone who wants a better prompt without learning to write one.</p>
+  <div class="meta">
+    <span class="tag on">status: approved</span>
+    <span class="tag">scope → prd</span>
+    <span class="tag">1 screen · grows downward</span>
+    <span class="tag">3-question ceiling</span>
+    <span class="tag">light + dark</span>
+    <span class="tag">requires AI inference</span>
+    <span class="tag">0 open questions</span>
+  </div>
+</section>
+
+<h2 id="journey">The Core Journey</h2>
+<p class="src">scope.md &gt; The Core Loop</p>
+
+<figure class="diagram" aria-label="Core journey flow">
+<svg viewBox="0 0 940 340" role="img" aria-labelledby="jt jd">
+  <title id="jt">The core journey</title>
+  <desc id="jd">The user arrives at a single input, types a rough thought, presses Shape this, sees an editable interpretation, answers up to three questions, presses Build prompt, receives an editable prompt, edits a chip which updates the prompt, and copies it. The dock is saved on successful generation.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8a8578"/>
+    </marker>
+  </defs>
+
+  <!-- row 1 -->
+  <rect x="14" y="30" width="150" height="64" rx="10" fill="#fdfdfa" stroke="#d8d2c4"/>
+  <text x="89" y="56" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="700" fill="#1c3829">Arrive</text>
+  <text x="89" y="76" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b776e">one input · 3+ chars</text>
+
+  <line x1="166" y1="62" x2="204" y2="62" stroke="#8a8578" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="208" y="30" width="150" height="64" rx="10" fill="#fdfdfa" stroke="#d8d2c4"/>
+  <text x="283" y="56" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="700" fill="#1c3829">Shape this</text>
+  <text x="283" y="76" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b776e">Shaping…</text>
+
+  <line x1="360" y1="62" x2="398" y2="62" stroke="#8a8578" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="402" y="30" width="170" height="64" rx="10" fill="#fdfdfa" stroke="#d9b96a" stroke-dasharray="5 4"/>
+  <text x="487" y="56" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="700" fill="#1c3829">What I understood</text>
+  <text x="487" y="76" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#8a6410">known / inferred chips</text>
+
+  <line x1="574" y1="62" x2="612" y2="62" stroke="#8a8578" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="616" y="30" width="150" height="64" rx="10" fill="#e9f6d8" stroke="#1c6b4a"/>
+  <text x="691" y="56" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="700" fill="#16603f">Up to 3 questions</text>
+  <text x="691" y="76" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#1c6b4a">one at a time</text>
+
+  <line x1="768" y1="62" x2="806" y2="62" stroke="#8a8578" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="810" y="30" width="116" height="64" rx="10" fill="#fdfdfa" stroke="#1c6b4a"/>
+  <text x="868" y="56" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="700" fill="#1c3829">Build prompt</text>
+  <text x="868" y="76" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b776e">Building…</text>
+
+  <!-- drop to row 2 -->
+  <path d="M868 96 L868 130 L110 130 L110 158" fill="none" stroke="#8a8578" stroke-width="1.6" marker-end="url(#ar)"/>
+  <text x="490" y="124" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b776e">the page grows downward · dock is saved here, on successful generation</text>
+
+  <rect x="26" y="162" width="210" height="64" rx="10" fill="#f7efdd" stroke="#d9b96a"/>
+  <text x="131" y="188" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="700" fill="#16603f">Your prompt</text>
+  <text x="131" y="208" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#8a6410">tall editable editor</text>
+
+  <line x1="238" y1="194" x2="276" y2="194" stroke="#8a8578" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="280" y="162" width="230" height="64" rx="10" fill="#fdfdfa" stroke="#d8d2c4"/>
+  <text x="395" y="186" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="700" fill="#1c3829">Edit a chip</text>
+  <text x="395" y="206" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b776e">prompt untouched → auto-update</text>
+
+  <line x1="512" y1="194" x2="550" y2="194" stroke="#8a8578" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="554" y="162" width="200" height="64" rx="10" fill="#fdfdfa" stroke="#d8d2c4"/>
+  <text x="654" y="186" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="700" fill="#1c3829">You edited the prompt</text>
+  <text x="654" y="206" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6b776e">never overwritten → Update prompt</text>
+
+  <line x1="756" y1="194" x2="794" y2="194" stroke="#8a8578" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="798" y="162" width="128" height="64" rx="10" fill="#d6f57e" stroke="none"/>
+  <text x="862" y="194" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14" font-weight="800" fill="#1c3829">Copy</text>
+  <text x="862" y="214" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#1c3829">Copied · no save</text>
+
+  <!-- failure branch -->
+  <path d="M691 96 L691 268" fill="none" stroke="#c98f86" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#ar)"/>
+  <rect x="596" y="272" width="190" height="48" rx="10" fill="#f9e9e6" stroke="#e0b3ac"/>
+  <text x="691" y="294" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#8d3b34">Generation fails</text>
+  <text x="691" y="311" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#8d3b34">everything stays · Try again</text>
+
+  <path d="M810 94 L868 94" fill="none" stroke="#c98f86" stroke-width="0" />
+</svg>
+<figcaption>One continuous page. Every arrow right is a small commitment; the only loop-back is failure, which costs time and never work.</figcaption>
+</figure>
+
+<h2 id="walk">Walk the State, Step by Step</h2>
+<p>Click through what exists on the page at each moment. Grayed blocks have not appeared yet. This is the "page grows downward" rule made literal.</p>
+
+<div class="stepper">
+  <div class="steps" role="tablist" aria-label="State walkthrough">
+    <button role="tab" aria-selected="true"  data-step="0">1 · Arrive</button>
+    <button role="tab" aria-selected="false" data-step="1">2 · Shaping…</button>
+    <button role="tab" aria-selected="false" data-step="2">3 · What I understood</button>
+    <button role="tab" aria-selected="false" data-step="3">4 · One question</button>
+    <button role="tab" aria-selected="false" data-step="4">5 · Build prompt</button>
+    <button role="tab" aria-selected="false" data-step="5">6 · Your prompt</button>
+    <button role="tab" aria-selected="false" data-step="6">7 · Edit a chip</button>
+    <button role="tab" aria-selected="false" data-step="7">8 · You edited it</button>
+    <button role="tab" aria-selected="false" data-step="8">9 · Failure</button>
+  </div>
+
+  <div class="screen" id="screen">
+    <div class="blk" data-on="12345678" id="s-head">
+      <div class="row" style="margin-top:0"><span class="brand">Prompt Dock Mini</span><span class="btn ghost" style="padding:4px 9px">☾</span></div>
+    </div>
+
+    <div class="blk" data-on="012345678" style="margin-top:14px">
+      <p class="promptline">What are you trying to get done?</p>
+      <p class="sub">Messy is fine.</p>
+      <div class="input" id="thought">Describe it however it comes to mind…<br><span style="opacity:.7">help me plan a portfolio site for my work</span></div>
+      <div class="row">
+        <span class="sub" style="font-size:13px">No perfect prompt needed. Start with the rough idea.</span>
+        <span class="btn primary" id="shapebtn">Shape this</span>
+      </div>
+      <div class="note" id="shapenote">Cmd/Ctrl + Enter · disabled under 3 non-whitespace characters</div>
+    </div>
+
+    <div class="blk" data-on="2345678" style="margin-top:16px">
+      <p class="sh" style="color:var(--ink);letter-spacing:.08em">What I understood</p>
+      <div class="chipwrap">
+        <span class="chip"><b>Goal</b>Create a portfolio site for my work</span>
+        <span class="chip"><b>Audience</b>Potential clients</span>
+        <span class="chip inf"><b>Output <span class="spark">✦</span></b>Complete website prompt <span class="spark">✦</span></span>
+        <span class="chip inf" id="chip-live"><b>Return by <span class="spark">✦</span></b>optional return date <span class="spark">✦</span></span>
+      </div>
+      <div class="note">✦ dotted = inferred from your thought · click a chip to edit · editing it by hand makes it known</div>
+    </div>
+
+    <div class="blk" data-on="3" id="s-ask" style="margin-top:14px">
+      <div class="ask">
+        <p class="sh" style="margin:0">One thing I need to know</p>
+        <p class="q">Who is this portfolio mainly meant to convince?</p>
+        <div class="input" style="min-height:auto;padding:9px 12px;color:var(--ink)">Potential clients, recruiters, collaborators…</div>
+        <div class="row"><span class="sub" style="font-size:12.5px">Question 1 of at most 3 · interpretation stays visible</span><span class="btn primary">Continue</span></div>
+      </div>
+    </div>
+
+    <div class="blk" data-on="4567" style="margin-top:14px">
+      <span class="btn primary" style="font-size:15px;padding:11px 20px">Build prompt</span>
+      <div class="note">strongest action on the page · never shown disabled while a question is pending</div>
+    </div>
+
+    <div class="blk" data-on="567" style="margin-top:16px">
+      <p class="sh" style="color:var(--ink);letter-spacing:.08em">Your prompt</p>
+      <div class="editor" id="prompt">You are an expert web strategist. Build a portfolio site intended to convince <span id="pv">potential clients</span>…<br><br>Requirements: responsive layout, case-study sections, clear contact path, accessible markup.</div>
+      <div class="row"><span class="btn ghost">Copy</span><span class="btn ghost" id="updated" data-off>✦ Updated</span><span class="btn ghost" id="rebuild" data-off style="border-color:var(--green);color:var(--green)">Understanding changed. &nbsp;Update prompt</span></div>
+      <div class="dock" id="dock" data-off>
+        <p class="sh">Recent docks · local only · newest first · cap 10</p>
+        <div class="dockrow">Portfolio site for my work <span>just now · ✕</span></div>
+        <div class="dockrow">Prepare for football trial <span>yesterday · ✕</span></div>
+        <div class="note">written on successful generation only — Copy does not save</div>
+      </div>
+    </div>
+
+    <div class="blk" data-on="8" style="margin-top:12px">
+      <div class="err">Couldn't build the prompt.<br><span style="font-weight:400;font-size:13px">Your work is still here.</span> &nbsp; <span class="btn ghost" style="border-color:#e0b3ac">Try again</span></div>
+      <div class="note">no dock is written · nothing the user typed is cleared</div>
+    </div>
+  </div>
+
+  <div id="stepwhy" class="why"></div>
+</div>
+
+<h2 id="screens">Screens and Layout</h2>
+<p class="src">scope.md &gt; The Core Loop, The Unique Kernel</p>
+<p>One screen, not several: a single page that <strong>grows downward as understanding increases</strong>. No navigation, no wizard, no progress bar, no Back/Next, no sidebars, no separate review page.</p>
+
+<details open><summary>Top to bottom, in order</summary><div class="body">
+<ol>
+  <li><strong>Header</strong> — wordmark left, theme toggle right. No nav links, account button, or help menu.</li>
+  <li><strong>Thought</strong> — heading, quiet supporting line, one large multiline input, <code>Shape this</code>, and the reassurance line. After shaping it compacts, is relabelled <em>Your thought</em>, stays editable, and resubmitting <em>recomputes</em> rather than preserving stale chips.</li>
+  <li><strong>What I understood</strong> — quiet heading, then chips for only the fields that apply (Goal, Audience, Context, Requirements, Output are illustrative, not a schema).</li>
+  <li><strong>Follow-up question</strong> — conditional, inline beneath the chips. Never a modal or chat window.</li>
+  <li><strong>Build prompt</strong> — conditional, rendered only when no high-impact question is pending.</li>
+  <li><strong>Your prompt</strong> — conditional: tall editable editor, <code>Copy</code>, plus <code>Update prompt</code> only when the prompt has been hand-edited and the understanding has since changed.</li>
+  <li><strong>Recent docks</strong> — conditional, beneath everything, rendered only when docks exist.</li>
+</ol>
+</div></details>
+
+<h2 id="behavior">Features and Behavior</h2>
+
+<details open><summary>First screen</summary><div class="body">
+  <ul>
+    <li>Header: wordmark + theme toggle. Nothing else.</li>
+    <li>Centered main content with a slight upper-center bias.</li>
+    <li>Heading <em>"What are you trying to get done?"</em>, supporting line <em>"Messy is fine."</em></li>
+    <li>Placeholder: <em>"Describe it however it comes to mind…"</em></li>
+    <li><strong>Examples are placeholder copy only</strong> — never clickable cards, templates, or suggestions.</li>
+    <li>Reassurance: <em>"No perfect prompt needed. Start with the rough idea."</em></li>
+    <li><code>Shape this</code> disabled below 3 non-whitespace characters (trimmed); enabled at 3+. No validation message at any point. <strong>No semantic or AI-based judgment</strong> of whether input is "good enough" — extremely vague input goes through.</li>
+    <li>Cmd/Ctrl + Enter submits.</li>
+  </ul>
+  <ul class="checks">
+    <li>The first screen presents exactly one obvious action: type into the box.</li>
+    <li><code>Shape this</code> is disabled at 0–2 non-whitespace characters and enabled at 3+, with no error text shown.</li>
+  </ul>
+</div></details>
+
+<details><summary>Shaping</summary><div class="body">
+  <ul>
+    <li>On submit: <em>Shaping…</em>, thought stays visible, duplicate submission blocked.</li>
+    <li>On success: thought compacts to an editable <em>Your thought</em> field with exact wording untouched; <em>What I understood</em> appears with chips.</li>
+    <li>Editing the thought and resubmitting <strong>recalculates</strong> the interpretation — stale chips are not preserved.</li>
+  </ul>
+  <ul class="checks">
+    <li>After shaping, the original wording is present and unmodified in the thought field.</li>
+    <li>Two different thoughts produce visibly different chip sets.</li>
+  </ul>
+</div></details>
+
+<details><summary>Interpretation chips</summary><div class="body">
+  <ul>
+    <li><strong>Known:</strong> plain chip, no icon. <strong>Inferred:</strong> same style, tiny sparkle, dotted underline, hover reveals <em>"Inferred from your thought."</em></li>
+    <li>No loud color difference between known and inferred.</li>
+    <li>Clicking turns the value into an inline editable field. Manually editing an inferred value marks it <strong>known</strong>.</li>
+  </ul>
+  <ul class="checks">
+    <li>An inferred value shows sparkle + dotted underline and a hover explanation.</li>
+    <li>After hand-editing an inferred value, it renders as known with no inferred cue.</li>
+  </ul>
+</div></details>
+
+<details><summary>Follow-up questions — the Gap Rule</summary><div class="body">
+  <ul>
+    <li>At most one question visible at a time, directly beneath the chips. Header: <em>"One thing I need to know"</em>, with a <code>Continue</code> action.</li>
+    <li>After each answer: incorporate, update the interpretation, re-evaluate gaps, then ask the next question or reveal <code>Build prompt</code>.</li>
+    <li><strong>Hard ceiling: 3 questions per dock.</strong> After the third, unresolved gaps become visible inferred assumptions and the flow continues.</li>
+    <li><code>Build prompt</code> is <strong>not rendered</strong> while a question is pending — never disabled with unclear reasoning.</li>
+    <li>The interpretation stays visible and readable while they answer.</li>
+  </ul>
+  <ul class="checks">
+    <li>Never two questions on screen at once.</li>
+    <li>A fourth question is never asked; the flow proceeds with remaining gaps marked inferred.</li>
+    <li><code>Build prompt</code> is absent while a question is pending, and appears once none is.</li>
+  </ul>
+</div></details>
+
+<details><summary>Build prompt</summary><div class="body">
+  <ul>
+    <li>Strongest visual action in its state; all chips editable before pressing.</li>
+    <li>On press: <em>Building…</em>, interpretation stays visible with editing visually paused, duplicate generation blocked.</li>
+  </ul>
+  <ul class="checks"><li>At most one generation request is in flight at a time.</li></ul>
+</div></details>
+
+<details open><summary>Prompt editor and interpretation sync <span style="font-family:var(--mono);font-size:10.5px;color:var(--green);font-weight:600">· the demo beat</span></summary><div class="body">
+  <ul>
+    <li>A tall multiline editor that reads as the final artifact, directly editable. Minimal actions: <strong>Copy</strong>, plus <strong>Update prompt</strong> only for the out-of-sync case. There is <strong>no generic <code>Rebuild prompt</code> action</strong> in the POC.</li>
+    <li><strong>Copy</strong> copies the current editor contents and briefly reads <em>Copied</em>. No toast pile, no modal, no persistence responsibility.</li>
+    <li><strong>Sync rule</strong> — the single internal distinction is <em>generated prompt untouched</em> vs <em>manually edited prompt</em>:
+      <ul>
+        <li><em>Untouched:</em> editing a chip <strong>auto-regenerates</strong>; the changed portion visibly updates and a brief <em>✦ Updated</em> marker appears.</li>
+        <li><em>Manually edited:</em> chip edits <strong>never</strong> silently overwrite. Show <em>"Understanding changed."</em> with <code>Update prompt</code>.</li>
+      </ul>
+    </li>
+  </ul>
+  <ul class="checks">
+    <li>With the prompt untouched: changing a chip updates the prompt with no second <code>Build prompt</code> press, and an <em>Updated</em> cue is briefly visible.</li>
+    <li>After hand-editing: changing a chip leaves the hand-edited text byte-for-byte intact and shows <em>"Understanding changed."</em> with <code>Update prompt</code>.</li>
+    <li><code>Copy</code> returns exactly what is currently in the editor.</li>
+  </ul>
+</div></details>
+
+<details><summary>Recent docks</summary><div class="body">
+  <ul>
+    <li>Local storage only. Latest <strong>10</strong>, newest first.</li>
+    <li><strong>Written only on successful generation.</strong> Copy does not save. Regenerating an already-saved dock updates that dock rather than creating a second row.</li>
+    <li>Stores: thought, interpreted fields with provenance, follow-up answers, prompt, timestamp.</li>
+    <li>Rows show an auto-title + relative time; clicking one <strong>restores the editable state rather than forking a copy</strong>; quiet per-row delete.</li>
+    <li><strong>Title rule (locked):</strong> Goal → else the first ~6 meaningful words of the original thought → else <code>Untitled dock</code>.</li>
+    <li>No rename, folders, tags, search, pinning, sync, or accounts.</li>
+  </ul>
+  <ul class="checks">
+    <li>With no docks, the section renders nothing at all — no empty state, no "You have no recent docks."</li>
+    <li>A dock appears immediately after first successful generation; regeneration updates the same row.</li>
+    <li>Reopening restores thought, chips, provenance, answers, and prompt as editable.</li>
+    <li>A dock with no usable Goal is titled with the first ~6 meaningful words of the thought; <code>Untitled dock</code> only when neither exists.</li>
+  </ul>
+</div></details>
+
+<details><summary>Loading and failure states</summary><div class="body">
+  <div class="grid2">
+    <div class="cardish">
+      <span class="k">First generation fails</span>
+      Interpretation stays visible; inline <em>"Couldn't build the prompt."</em> with <code>Try again</code> and quiet <em>"Your work is still here."</em> No modal, no navigation, no dock written.
+    </div>
+    <div class="cardish">
+      <span class="k">Regeneration fails</span>
+      The last good prompt stays intact and usable; inline <em>"Couldn't update the prompt."</em> with <code>Try again</code>. An error never replaces a working prompt.
+    </div>
+  </div>
+  <p class="note">Shape this → "Shaping…" · Build prompt → "Building…" · duplicate actions blocked throughout</p>
+</div></details>
+
+<h2 id="states">States and Boundaries</h2>
+<details open><summary>Every state we specified</summary><div class="body">
+<ul>
+  <li><strong>First use (no docks)</strong> — the page is the input; Recent docks renders nothing.</li>
+  <li><strong>Empty input</strong> — <code>Shape this</code> disabled; no message.</li>
+  <li><strong>Generation fails (first attempt)</strong> — see above; no dock written.</li>
+  <li><strong>Regeneration fails</strong> — last successful prompt survives.</li>
+  <li><strong>Processing</strong> — buttons relabel, duplicates blocked, nothing the user wrote disappears.</li>
+  <li><strong>Persistence</strong> — browser local storage only, this device, this browser. Clearing site data removes docks; no recovery, sync, or export. Ten text-only docks are far below any quota that matters; <strong>if a write fails, the session continues normally</strong> — nothing is lost, the dock simply isn’t persisted for next time.</li>
+  <li><strong>Who sees what</strong> — single user, single device, no accounts, no sharing. Nothing leaves the browser except the request that shapes and builds the prompt.</li>
+  <li><strong>Locked rules</strong> — gaps never render as "missing"; 3-question ceiling; save on successful generation only.</li>
+</ul>
+</div></details>
+
+<div class="principle">Guiding principle: <b>AI failure should cost the user time, never their work.</b></div>
+
+<h2>Product Decisions</h2>
+<details open><summary>What you chose, and why</summary><div class="body">
+<table>
+  <tr><th style="width:40%">Decision</th><th>Reason</th></tr>
+  <tr><td>Save on successful generation, not on Copy</td><td>"Copy only copies. It should not control whether work is saved."</td></tr>
+  <tr><td>Sync breaks at manual prompt edit</td><td>"Once someone manually fixes the final prompt, changing a chip cannot unexpectedly erase their work."</td></tr>
+  <tr><td>3-character trim guard, no semantic check</td><td>An AI judgment of "meaningful input" would contradict "Messy is fine."</td></tr>
+  <tr><td>Withhold <code>Build prompt</code> rather than disable it</td><td>"Prefer not rendering it yet rather than showing a disabled button with unclear reasoning."</td></tr>
+  <tr><td>No example cards</td><td>Examples live only as placeholder copy, so the first screen has one action.</td></tr>
+  <tr><td>Two separate actions</td><td><code>Shape this</code> interprets; <code>Build prompt</code> compiles.</td></tr>
+  <tr><td>Single-page growth instead of steps</td><td>"The page grows downward as understanding increases." No wizard, progress bar, or review page.</td></tr>
+  <tr><td>Chips are a flexible set, not a schema</td><td>Only relevant fields render, so different thoughts look different.</td></tr>
+  <tr><td>Theme toggle ships, light-first</td><td>Light is the reference design; dark keeps the same character rather than a neutral inversion.</td></tr>
+  <tr><td>Ivory-green palette, code from scratch</td><td>Calm muted green is the sole accent; "the sparkle is functional, not branding."</td></tr>
+  <tr><td>Manrope</td><td>Primary typeface.</td></tr>
+  <tr><td><code>Rebuild prompt</code> cut</td><td>"It introduces a second concept without a strong reason." The two existing paths cover every case.</td></tr>
+  <tr><td>Title fallback locked</td><td>Goal, else ~6 meaningful words of the thought, else <code>Untitled dock</code>.</td></tr>
+  <tr><td>Storage failure is graceful</td><td>"Preserve the current session and simply don't persist it."</td></tr>
+  <tr><td>AI inference is a product dependency</td><td>Both central operations call a model; credentials stay server-side, so it's one Next.js deployment with no separate backend.</td></tr>
+  <tr><td>Constraints carried to 4-spec</td><td>Next.js App Router + TypeScript · one deployable app, no separate backend · inference only through server-side routes · credentials never reach the browser · <strong>compatible with a genuinely free/free-tier model</strong> for the hackathon.</td></tr>
+</table>
+</div></details>
+
+<h2 id="boundary">The Boundary</h2>
+
+<div class="grid2">
+  <div class="cardish">
+    <span class="k">What we're building</span>
+    <p style="font-size:14.5px;margin-top:4px"><strong>The product requires AI inference.</strong> <code>Shape this</code> and <code>Build prompt</code> both call a model. <em>How</em> is a <code>4-spec</code> decision; the standing constraint is that provider credentials never reach the browser — inference goes through server-side routes, so this deploys as one Next.js app with no separate backend service.</p>
+    <ul>
+      <li>Single page, header + theme toggle, light/dark</li>
+      <li>Thought input, 3-char guard, Cmd/Ctrl+Enter</li>
+      <li>Known/inferred chips, inline edit, inferred → known</li>
+      <li>Inline questions, ceiling 3, then inferred</li>
+      <li><code>Build prompt</code> + processing + inline recovery</li>
+      <li>Tall prompt editor, Copy + Update prompt</li>
+      <li>Chip → prompt sync (untouched vs edited)</li>
+      <li>Recent docks: local, cap 10, save on generation, restore, auto-title, delete</li>
+      <li>Both error states</li>
+      <li>Survives a browser reload</li>
+    </ul>
+  </div>
+  <div class="cardish">
+    <span class="k">Deferred from the POC</span>
+    <ul style="margin-top:0">
+      <li>Accounts, sync, sharing — one browser proves continuity without a backend</li>
+      <li>Running the prompt — a 1.0 feature, drags in keys, models, cost</li>
+      <li>Model/provider selection and BYOK</li>
+      <li>Multi-agent pipeline / execution view</li>
+      <li>Template gallery, onboarding, marketing copy</li>
+      <li>Library management — rename, folders, tags, search, pinning</li>
+      <li>A visible "missing" chip — three states is a questionnaire; two is a product</li>
+    </ul>
+  </div>
+</div>
+
+<details><summary>Possible later enhancements</summary><div class="body"><ul>
+  <li>Manual dock renaming and pinning, once ten rows isn't enough.</li>
+  <li>Export a dock as a file, or share by link.</li>
+  <li>Alternate generations for one thought (several candidate prompts) — the only thing that would bring a generic rebuild action back.</li>
+  <li>Multiple dock slots per thought (variants) now that the sync rule exists.</li>
+  <li>Running the prompt, with provider choice.</li>
+</ul></div></details>
+
+<details><summary>Non-goals</summary><div class="body"><ul>
+  <li>No accounts, auth, or sync — <em>no infrastructure to maintain for a demo</em>.</li>
+  <li>No executing the prompt — <em>scope.md &gt; Explicitly Cut</em>.</li>
+  <li>No wizard, progress bar, numbered steps, Back/Next, or sidebars.</li>
+  <li>No purple/blue AI gradients, glow, glassmorphism, neon, or floating sparkles.</li>
+  <li>No success screen, score, or completion step — <em>the prompt is the proof</em>.</li>
+  <li>No AI-based validation of the user's input — <em>"Messy is fine."</em></li>
+  <li>No silent overwrite of a hand-edited prompt.</li>
+  <li>No generic <code>Rebuild prompt</code> action — <em>the untouched path regenerates itself; the edited path has <code>Update prompt</code></em>.</li>
+  <li>No client-side provider key — <em>inference goes through server-side routes so the key never ships to the browser</em>.</li>
+</ul></div></details>
+
+<details open><summary>Open questions</summary><div class="body">
+  <p style="margin-top:4px"><strong>None.</strong> Three candidates were raised in review; all three are settled:</p>
+  <ul>
+    <li><s>Storage quota</s> — <strong>resolved:</strong> not a product concern at ten text docks; a failed write fails gracefully without losing the session.</li>
+    <li><s>Auto-title fallback</s> — <strong>resolved:</strong> Goal → first ~6 meaningful words of the thought → <code>Untitled dock</code>.</li>
+    <li><s>Rebuild vs Update</s> — <strong>resolved:</strong> <code>Rebuild prompt</code> is <strong>cut</strong>. Untouched prompts regenerate automatically; hand-edited prompts get <code>Update prompt</code>.</li>
+  </ul>
+</div></details>
+
+<footer>
+  Prompt Dock Mini · <code>devpost/prd.md</code> is canonical · generated from the 3-prd review · nothing here is copied from the original Prompt Dock.
+</footer>
+
+</div>
+
+<script>
+const why = [
+  "Nothing on the page but the invitation to type. One action, one input, one quiet reassurance. Examples live inside the placeholder copy, never as clickable cards.",
+  "The button relabels itself and blocks duplicates — the thought never disappears while the request is in flight.",
+  "The interpretation is a flexible set of chips, not a form. Dotted underline + a tiny sparkle mark what Mini guessed; clicking makes it editable, and a manual edit turns it known.",
+  "One question, inline, with the interpretation still visible above it. Question 1 of at most 3 — a fourth is never asked.",
+  "No high-impact gap remains, so Build prompt renders as the strongest action on the page. It is never shown disabled while a question is pending.",
+  "The page grew downward again. A tall editor that reads as the final artifact, Copy as the only always-available action — and the dock is written here, the moment generation succeeded.",
+  "Demo beat. The prompt was untouched by hand, so editing a chip regenerates it on the spot with a brief ✦ Updated marker. No second Build prompt press.",
+  "The moment you hand-edit the prompt, the sync breaks deliberately: chip changes can never erase your work. Understanding changed. + Update prompt — and there is no generic Rebuild button, because the untouched path already regenerates itself.",
+  "Failure keeps you exactly where you are. The interpretation stays, your text stays, nothing is saved yet, and the only cost is the time to press Try again."
+];
+const tabs=[...document.querySelectorAll('.steps button')];
+const blocks=[...document.querySelectorAll('#screen .blk')];
+const box=document.getElementById('stepwhy');
+function render(n){
+  tabs.forEach((b,i)=>b.setAttribute('aria-selected', i===n?'true':'false'));
+  blocks.forEach(b=>{
+    const on=(b.dataset.on||'').includes(String(n));
+    if(on) b.removeAttribute('data-off'); else b.setAttribute('data-off','');
+  });
+  // step-specific accents
+  const live=document.getElementById('chip-live');
+  const upd=document.getElementById('updated');
+  const reb=document.getElementById('rebuild');
+  const dock=document.getElementById('dock');
+  const note=document.getElementById('shapenote');
+  if(live) live.classList.toggle('inf', n!==7);
+  if(upd)  n===6 ? upd.removeAttribute('data-off') : upd.setAttribute('data-off','');
+  if(reb)  n===7 ? reb.removeAttribute('data-off') : reb.setAttribute('data-off','');
+  if(dock) (n>=5&&n<=7) ? dock.removeAttribute('data-off') : dock.setAttribute('data-off','');
+  if(note) note.textContent = n>=2
+    ? "relabeled “Your thought” · editable · resubmitting recomputes the interpretation"
+    : "Cmd/Ctrl + Enter · disabled under 3 non-whitespace characters";
+  if(n===6){ const p=document.getElementById('pv'); if(p) p.textContent="potential clients and recruiters"; }
+  else { const p=document.getElementById('pv'); if(p) p.textContent="potential clients"; }
+  if(n===7){ const p=document.getElementById('prompt'); if(p) p.firstChild.nodeValue="You are an expert web strategist. Build a portfolio site intended to convince "; }
+  box.textContent = why[n];
+}
+tabs.forEach((b,i)=>b.addEventListener('click',()=>render(i)));
+render(0);
+</script>
+</body>
+</html>
