@@ -31,7 +31,7 @@ Build mode: fast (agent implements end to end; learner is full-stack and drives 
   Commit: `Prove AI provider chain returns structured JSON`
   Evidence: `npx tsx --env-file-if-exists=.env scripts/probe-ai.ts` → apmix (`claude-sonnet-4-6-free`, 5.1s), groq (`openai/gpt-oss-120b`, 0.8s), gemini (`gemini-2.5-flash`, 1.3s) all return parseable JSON; forced apmix failure falls through to groq. Observations that changed the plan: the `.env` `APMIX_MODEL` was stale (API only serves `claude-sonnet-4-6-free` on this key) — corrected; apmix and gemini wrap output in ```json fences even when `response_format` is sent, so `extractJson()` (fence + prose stripping) was added to `lib/ai.ts` and the route layer will use it plus `response_format: json_object`.
 
-- [ ] **3. Your shape and build prompts hold the contract**
+- [x] **3. Your shape and build prompts hold the contract** ✅ verified
   Becomes usable: `shape` reliably returns dynamic fields tagged known/inferred and at most one question across very different rough thoughts; `build` returns prompt text with no chat preamble.
   Why now: the entire interpretation UI renders whatever the prompt returns. Testing it first stops us building a renderer for an unstable shape — this is the spec's ⚑ open question, and the prompt-engineering work this hackathon is meant to showcase. Agent may author the prompts; the 10-input adversarial test is mandatory either way (ownership revised in spec before execution).
   PRD ref: `prd.md > Interpretation chips`, `prd.md > Follow-up questions (the Gap Rule)`
@@ -40,6 +40,7 @@ Build mode: fast (agent implements end to end; learner is full-stack and drives 
   Verify (mechanical): 10/10 thoughts return parseable JSON, every field carries a provenance tag, response contains at most one question, and no prose outside the structure. Failures are listed, not hidden.
   Learner check: Pick two of the ten outputs and say whether they match the chips you'd want on screen.
   Commit: `Add shape and build prompt contracts`
+  Evidence: iteration 1 of `scripts/test-shape.ts` found 2 violations (a field value reading "Unknown timeframe…", and a menu-style multi-option question); prompt tightened (no placeholder words in values; single open question, no option menus; assume-by-default) → iteration 2: **10/10 thoughts hold the contract**, including the 3-question ceiling rule on every asked follow-up, multi-round answer incorporation, and the prompt-shaped injection input. `scripts/test-build.ts`: 3/3 — no chat preamble, no wrapping fence, no provenance/shape leakage, answered facts carried through, ≤450 words. Ownership note: these prompts were agent-authored per the pre-execution spec revision.
 
 - [ ] **4. You can shape a thought and see editable chips**
   Becomes usable: type a thought, press `Shape this`, and the page shows the interpretation as editable known/inferred chips. A failed call shows the inline error with your text untouched.
