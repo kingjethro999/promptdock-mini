@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prompt Dock Mini
 
-## Getting Started
+Turn a rough, half-formed thought into a usable AI prompt. Type what you're trying to get done; the app shows its understanding back to you as editable chips, asks at most three follow-up questions when a wrong guess would matter, and compiles a final prompt you can edit and copy.
 
-First, run the development server:
+Built as a proof of concept for the Devpost Learn hackathon. Single page, no accounts — everything except AI calls happens in your browser.
+
+## Stack
+
+- **Next.js 16** (App Router) + **React 19** + **TypeScript 5**
+- **Tailwind CSS 4**
+- AI providers behind a server-side fallback chain (defaults: APMIX → Groq → Gemini)
+- `tsx` for test scripts (see `scripts/`)
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open the URL shown in the terminal. If port 3000 is already occupied, Next.js automatically uses the next available port (3001, 3002, …) and prints it — use whichever URL it reports.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Other scripts:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build   # production build
+npm run lint    # eslint
+npx tsc --noEmit
+```
 
-## Learn More
+## Environment variables
 
-To learn more about Next.js, take a look at the following resources:
+Create a `.env` in the repo root (never commit it — `.env` is gitignored). At least one provider key is required for the app to do anything; the chain falls back in order when a provider fails.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+See `.env.example` for a fillable template.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `APMIX_API_KEY` | one of the three | — | APMIX provider key |
+| `GROQ_API_KEY` | one of the three | — | Groq provider key |
+| `GEMINI_API_KEY` | one of the three | — | Google Gemini provider key |
+| `AI_PROVIDER_ORDER` | no | `apmix,groq,gemini` | Fallback order, comma-separated |
+| `AI_MAX_FALLBACKS` | no | `2` | Max provider attempts per request |
+| `AI_REQUEST_TIMEOUT_MS` | no | `12000` | Per-provider timeout |
+| `APMIX_BASE_URL` | no | APMIX default | Override APMIX endpoint |
+| `APMIX_MODEL` / `GROQ_MODEL` / `GEMINI_MODEL` | no | built-in defaults | Override per-provider model |
 
-## Deploy on Vercel
+Provider credentials are read on the server only (`lib/ai.ts`, API routes) — they never reach the browser.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## How it works
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+rough thought → /api/shape → editable chips + ≤1 follow-up question
+             → /api/build  → final prompt → copy
+```
+
+- **`lib/prompts/shape.ts`** — prompt contract: structured interpretation (chips) + optional question
+- **`lib/prompts/build.ts`** — prompt contract: final prose prompt
+- **`lib/ai.ts`** — provider chain with JSON extraction and fallback
+- **`app/page.tsx`** — state machine/orchestration; components in `components/` own individual UI behavior
+- **`lib/dock-storage.ts`** — localStorage docks (`pmd.docks`, newest 10, saved only on successful generation) and theme (`pmd.theme`)
+
+## Planning documents
+
+The full planning trail lives in [`devpost/`](devpost/):
+
+- [`scope.md`](devpost/scope.md) — what's in and out of the proof of concept
+- [`prd.md`](devpost/prd.md) — product requirements and locked decisions
+- [`spec.md`](devpost/spec.md) — technical design
+- [`checklist.md`](devpost/checklist.md) — build slices and verification evidence
+- [`app-map.html`](devpost/app-map.html) — code tour of the finished app (open in a browser)
+
+## Tests
+
+```bash
+npx tsx --env-file-if-exists=.env scripts/storage-smoke.ts
+npx tsx --env-file-if-exists=.env scripts/test-docks.ts
+npx tsx --env-file-if-exists=.env scripts/test-shape.ts
+npx tsx --env-file-if-exists=.env scripts/test-build.ts
+npx tsx --env-file-if-exists=.env scripts/test-question-loop.ts
+npx tsx --env-file-if-exists=.env scripts/test-build-route.ts
+```
+
+## Data & privacy
+
+No backend storage, no accounts. Docks and theme preference live in your browser's `localStorage` (`pmd.docks`, `pmd.theme`) and never leave the machine. Thoughts and answers are sent to the configured AI provider to generate results.
