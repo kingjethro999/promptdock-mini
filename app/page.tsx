@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { BuildPrompt } from "../components/BuildPrompt";
 import { FollowUpQuestion } from "../components/FollowUpQuestion";
 import { Interpretation } from "../components/Interpretation";
+import { PromptEditor } from "../components/PromptEditor";
 import { ThoughtInput } from "../components/ThoughtInput";
 import { Field, MAX_QUESTIONS, ShapeResponse } from "../lib/types";
 
@@ -14,6 +16,8 @@ interface ShapePayload {
   lastQuestion: string | null;
 }
 
+type ErrorKind = "shape" | "build-first" | "build-regen" | null;
+
 export default function Home() {
   const [thought, setThought] = useState("");
   const [fields, setFields] = useState<Field[] | null>(null);
@@ -21,12 +25,76 @@ export default function Home() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
-  const [pending, setPending] = useState<ShapePayload | null>(null);
 
-  async function runShape(payload: ShapePayload): Promise<boolean> {
+  const [prompt, setPrompt] = useState<string | null>(null);
+  const [promptEditedManually, setPromptEditedManually] = useState(false);
+  const [pendingSync, setPendingSync] = useState(false);
+  const [promptBusy, setPromptBusy] = useState(false);
+  const [updatedCue, setUpdatedCue] = useState(false);
+
+  const [errorKind, setErrorKind] = useState<ErrorKind>(null);
+  const [pending, setPending] = useState<ShapePayload | null>(null);
+  const cueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cueTimer.current) clearTimeout(cueTimer.current);
+    };
+  }, []);
+
+  function flashUpdated() {
+    setUpdatedCue(true);
+    if (cueTimer.current) clearTimeout(cueTimer.current);
+    cueTimer.current = setTimeout(() => setUpdatedCue(false), 2000);
+  }
+
+  async function postBuild(
+    buildThought: string,
+    buildFields: Field[],
+    buildAnswers: string[],
+  ): Promise<string> {
+    const res = await fetch("/api/build", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        thought: buildThought,
+        interpretation: { fields: buildFields },
+        answers: buildAnswers,
+      }),
+    });
+    if (!res.ok) throw new Error(`build failed: ${res.status}`);
+    const data = (await res.json()) as { prompt?: unknown };
+    if (typeof data.prompt !== "string" || data.prompt.trim().length === 0) {
+      throw new Error("empty prompt");
+    }
+    return data.prompt;
+  }
+
+  async function runRegen(
+    buildThought: string,
+    buildFields: Field[],
+    buildAnswers: string[],
+  ): Promise<boolean> {
+    setPromptBusy(true);
+    setErrorKind(null);
+    try {
+      const next = await postBuild(buildThought, buildFields, buildAnswers);
+      setPrompt(next);
+      setPromptEditedManually(false);
+      setPendingSync(false);
+      flashUpdated();
+      return true;
+    } catch {
+      setErrorKind("build-regen");
+      return false;
+    } finally {
+      setPromptBusy(false);
+    }
+  }
+
+  async function runShape(payload: ShapePayload): Promise<ShapeResponse | null> {
     setBusy(true);
-    setError(false);
+    setErrorKind(null);
     setPending(payload);
     try {
       const res = await fetch("/api/shape", {
@@ -43,16 +111,23 @@ export default function Home() {
         data.question !== null &&
         payload.questionCount < MAX_QUESTIONS;
       setQuestion(asksAgain ? data.question : null);
-      return true;
+      if (prompt !== null) {
+        setPendingSync(true);
+        if (!promptEditedManually) {
+          void runRegen(payload.thought, data.interpretation.fields, payload.answers);
+        }
+      }
+      return data;
     } catch {
-      setError(true);
-      return false;
+      setErrorKind("shape");
+      return null;
     } finally {
       setBusy(false);
     }
   }
 
   function handleSubmit(next: string) {
+    if (promptBusy) return;
     const isReshape = fields !== null;
     void runShape({
       thought: next,
@@ -78,12 +153,56 @@ export default function Home() {
       setAnswers(nextAnswers);
       setQuestionCount(nextCount);
     }
-    return sent;
+    return sent !== null;
+  }
+
+  async function handleBuild() {
+    if (fields === null) return;
+    setPromptBusy(true);
+    setErrorKind(null);
+    try {
+      const next = await postBuild(thought, fields, answers);
+      setPrompt(next);
+      setPromptEditedManually(false);
+      setPendingSync(false);
+    } catch {
+      setErrorKind("build-first");
+    } finally {
+      setPromptBusy(false);
+    }
   }
 
   function handleFieldChange(next: Field[]) {
     setFields(next);
+    if (prompt === null) return;
+    setPendingSync(true);
+    if (!promptEditedManually && !promptBusy) {
+      void runRegen(thought, next, answers);
+    }
   }
+
+  function handlePromptChange(next: string) {
+    setPrompt(next);
+    setPromptEditedManually(true);
+  }
+
+  function handleUpdatePrompt() {
+    if (fields === null) return;
+    void runRegen(thought, fields, answers);
+  }
+
+  function retryError() {
+    if (errorKind === "shape" && pending) void runShape(pending);
+    else if (errorKind === "build-first") void handleBuild();
+    else if (errorKind === "build-regen" && fields !== null) {
+      void runRegen(thought, fields, answers);
+    }
+  }
+
+  const errorCopy =
+    errorKind === "build-regen"
+      ? { headline: "Couldn't update the prompt.", quiet: null }
+      : { headline: "Couldn't build the prompt.", quiet: "Your work is still here." };
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-10">
@@ -124,7 +243,11 @@ export default function Home() {
 
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold text-muted">What I understood</h2>
-            <Interpretation fields={fields} onChange={handleFieldChange} disabled={busy} />
+            <Interpretation
+              fields={fields}
+              onChange={handleFieldChange}
+              disabled={busy || promptBusy}
+            />
           </section>
 
           {question !== null && (
@@ -135,24 +258,38 @@ export default function Home() {
               onContinue={handleContinue}
             />
           )}
+
+          {question === null && prompt === null && (
+            <BuildPrompt busy={busy || promptBusy} onBuild={() => void handleBuild()} />
+          )}
+
+          {prompt !== null && (
+            <PromptEditor
+              value={prompt}
+              busy={promptBusy}
+              promptEditedManually={promptEditedManually}
+              interpretationChanged={pendingSync}
+              updatedCue={updatedCue}
+              onChange={handlePromptChange}
+              onUpdatePrompt={handleUpdatePrompt}
+            />
+          )}
         </>
       )}
 
-      {error && (
+      {errorKind && (
         <div className="flex flex-col gap-1 rounded-xl border border-line bg-panel px-4 py-3">
-          <p className="text-sm font-semibold text-fg">Couldn&apos;t build the prompt.</p>
+          <p className="text-sm font-semibold text-fg">{errorCopy.headline}</p>
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => {
-                if (pending) void runShape(pending);
-              }}
-              disabled={busy || !pending}
+              onClick={retryError}
+              disabled={busy || promptBusy}
               className="rounded-full bg-green px-4 py-1.5 text-xs font-semibold text-bg transition-opacity disabled:opacity-40"
             >
               Try again
             </button>
-            <span className="text-xs text-muted">Your work is still here.</span>
+            {errorCopy.quiet && <span className="text-xs text-muted">{errorCopy.quiet}</span>}
           </div>
         </div>
       )}
