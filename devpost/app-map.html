@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prompt Dock Mini — Code Tour &amp; App Map</title>
+<style>
+  :root{
+    --paper:#f7f8f3; --card:#fdfdfa; --ink:#1c3829; --body:#3d4a41;
+    --muted:#6b776e; --line:#e3e6dc; --green:#1c6b4a; --green-soft:#e9f6d8;
+    --lime:#d6f57e; --amber:#8a6410; --amber-soft:#f7efdd; --rose:#8d3b34;
+    --sans:Manrope,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --max:960px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#12291d; --card:#183324; --ink:#e8efe6; --body:#c3d2c5;
+      --muted:#8fa393; --line:#2b4a36; --green:#7ecb9b; --green-soft:#1d3d2a;
+      --amber:#d9b96a; --amber-soft:#2a3a24; --rose:#e0a49c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--green)}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  header.site{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:56px}
+  .brand{font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .brand span{font-weight:600;color:var(--muted)}
+  nav.top{display:flex;gap:14px;flex-wrap:wrap}
+  nav.top a{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-decoration:none}
+  nav.top a:hover{color:var(--ink)}
+  .hero{padding:52px 0 26px}
+  h1{font-size:clamp(30px,5vw,44px);line-height:1.1;letter-spacing:-.03em;color:var(--ink);margin:0 0 12px}
+  .lede{font-size:18px;color:var(--body);max-width:66ch}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+  .tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:4px 10px}
+  .tag.on{background:var(--lime);border-color:transparent;color:#1c3829;font-weight:700}
+  h2{font-size:24px;letter-spacing:-.02em;color:var(--ink);margin:50px 0 6px}
+  h2 .pill{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--green);color:var(--green);border-radius:999px;padding:2px 8px;vertical-align:middle;margin-left:8px;font-weight:600}
+  h3{font-size:17px;color:var(--ink);margin:24px 0 6px;letter-spacing:-.01em}
+  p{margin:8px 0}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:4px 0}
+  code{font-family:var(--mono);font-size:.9em;background:var(--green-soft);border-radius:5px;padding:1px 5px}
+  .src{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em;margin-top:2px}
+  .diagram{margin:18px 0 6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .diagram svg{display:block;width:100%;height:auto}
+  figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td:first-child{white-space:nowrap}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .cardish{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+  .principle{margin-top:34px;background:var(--ink);color:#eef3ec;border-radius:14px;padding:24px 26px;font-size:19px;letter-spacing:-.01em;line-height:1.45}
+  .principle b{color:var(--lime)}
+  footer{margin-top:64px;border-top:1px solid var(--line);padding:26px 0 60px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap bar">
+    <div class="brand">Prompt Dock Mini <span>/ App Map</span></div>
+    <nav class="top">
+      <a href="#flow">Flow</a>
+      <a href="#files">Files</a>
+      <a href="#routes">Routes</a>
+      <a href="#providers">Providers</a>
+      <a href="#contracts">Contracts</a>
+      <a href="#docks">Docks</a>
+      <a href="#sync">Sync</a>
+      <a href="#theme">Theme</a>
+      <a href="#demopath">Demo path</a>
+      <a href="#verify">Verify</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section class="hero">
+  <h1>Code Tour &amp; App Map</h1>
+  <p class="lede">A guided map of the finished Prompt Dock Mini codebase: where a thought becomes chips, where chips become a prompt, how provider failures and hand-edits are survived, and exactly which lines the demo video walks through. Generated from the code as it stands — every symbol named below exists in the repository.</p>
+  <div class="meta">
+    <span class="tag on">7 slices · 7 commits</span>
+    <span class="tag">Next.js 16 App Router · React 19 · Tailwind v4</span>
+    <span class="tag">demo path 51/51</span>
+    <span class="tag">localStorage: pmd.docks + pmd.theme only</span>
+    <span class="tag">no pmd.currentDockId</span>
+  </div>
+</section>
+
+<h2 id="flow">1. Request &amp; data flow <span class="pill">one screen, two POSTs</span></h2>
+<p>The whole app is one client component (<code>app/page.tsx</code>) owning top-level state, two POST routes, and a provider chain underneath. Nothing is fetched on page load; the only network traffic is the user's own shaping and building requests.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 920 330" role="img" aria-label="Data flow from thought input through shape and build routes to prompt and docks">
+  <desc>Thought flows from the textarea through POST /api/shape (validation, provider chain) back as chips plus at most one question; answers loop back. Chips plus answers flow through POST /api/build back as a prompt, which PromptEditor owns and localStorage persists as a dock.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1c6b4a"/>
+    </marker>
+  </defs>
+  <rect x="8" y="40" width="150" height="54" rx="10" fill="#e9f6d8" stroke="#1c6b4a"/>
+  <text x="83" y="63" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">ThoughtInput</text>
+  <text x="83" y="80" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">3-char guard · ⌘↵</text>
+
+  <rect x="196" y="16" width="170" height="70" rx="10" fill="#fdfdfa" stroke="#e3e6dc"/>
+  <text x="281" y="40" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">POST /api/shape</text>
+  <text x="281" y="57" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">validate-shape · 3-cap</text>
+  <text x="281" y="72" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">runChain: apmix→groq→gemini</text>
+
+  <rect x="196" y="118" width="170" height="70" rx="10" fill="#fdfdfa" stroke="#e3e6dc"/>
+  <text x="281" y="142" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">POST /api/build</text>
+  <text x="281" y="159" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">complete(): raw prose</text>
+  <text x="281" y="174" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">502 → no partial prompt</text>
+
+  <rect x="420" y="16" width="160" height="70" rx="10" fill="#e9f6d8" stroke="#1c6b4a"/>
+  <text x="500" y="40" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">Interpretation</text>
+  <text x="500" y="57" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">chips · known / ✦inferred</text>
+  <text x="500" y="72" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">≤1 FollowUpQuestion</text>
+
+  <rect x="420" y="118" width="160" height="70" rx="10" fill="#e9f6d8" stroke="#1c6b4a"/>
+  <text x="500" y="142" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#1c3829">PromptEditor</text>
+  <text x="500" y="159" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">tall textarea · Copy</text>
+  <text x="500" y="174" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">hand-edit protection</text>
+
+  <rect x="648" y="66" width="170" height="70" rx="10" fill="#fdfdfa" stroke="#8a6410"/>
+  <text x="733" y="90" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#8a6410">localStorage</text>
+  <text x="733" y="107" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">pmd.docks (cap 10)</text>
+  <text x="733" y="122" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#6b776e">pmd.theme · no ids</text>
+
+  <line x1="158" y1="58" x2="192" y2="52" stroke="#1c6b4a" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="366" y1="52" x2="416" y2="52" stroke="#1c6b4a" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="500" y1="86" x2="500" y2="114" stroke="#1c6b4a" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="420" y1="146" x2="370" y2="146" stroke="#1c6b4a" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="196" y1="153" x2="158" y2="86" stroke="#1c6b4a" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="580" y1="153" x2="644" y2="118" stroke="#8a6410" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="281" y1="86" x2="281" y2="114" stroke="#1c6b4a" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+
+  <text x="176" y="106" font-family="ui-monospace,monospace" font-size="9.5" fill="#6b776e">answers loop</text>
+  <text x="596" y="146" font-family="ui-monospace,monospace" font-size="9.5" fill="#8a6410">save on success only</text>
+</svg>
+<figcaption>Solid: happy path. Dashed: follow-up answers re-enter /api/shape (client stops at 4 requests total; the server independently forces <code>needsFollowUp:false</code> at question 3). Amber: persistence writes happen only after a successful generation.</figcaption>
+</figure>
+
+<h2 id="files">2. File map — who owns what</h2>
+<table>
+  <tr><th>File</th><th>Owns</th></tr>
+  <tr><td>app/page.tsx</td><td>All top-level state (thought, fields, question, answers, prompt, <code>promptEditedManually</code>, <code>pendingSync</code>, errors, docks); <code>runShape</code> / <code>runRegen</code> / <code>handleBuild</code>; dock persistence (<code>persistDock</code>, <code>restoreDock</code>, <code>removeDock</code>); error-copy mapping.</td></tr>
+  <tr><td>app/layout.tsx</td><td>Manrope via <code>next/font</code>, shell markup, mounts <code>ThemeBoot</code>.</td></tr>
+  <tr><td>app/theme-boot.tsx</td><td>Inline pre-hydration script: reads <code>pmd.theme</code>, sets <code>data-theme</code> before React mounts (no flash).</td></tr>
+  <tr><td>app/globals.css</td><td>CSS custom properties → Tailwind theme tokens; light root + <code>[data-theme="dark"]</code> root (<code>#12291d</code>, lime <code>#d6f57e</code>). Components use tokens only — zero hardcoded colors.</td></tr>
+  <tr><td>app/api/shape/route.ts</td><td>Shape endpoint: body validation, provider chain call, server-side 3-question ceiling, route response nesting.</td></tr>
+  <tr><td>app/api/build/route.ts</td><td>Build endpoint: validation, raw-prose completion, typed 502, no partial results.</td></tr>
+  <tr><td>components/ThoughtInput.tsx</td><td>Thought textarea; 3-non-whitespace guard (disabled state, no message); Cmd/Ctrl+Enter; <em>Shaping…</em> blocking; compact <em>Your thought</em> mode.</td></tr>
+  <tr><td>components/Interpretation.tsx</td><td>Chip set from returned fields only; click-to-edit inline; manual edit flips provenance to <code>known</code>.</td></tr>
+  <tr><td>components/FollowUpQuestion.tsx</td><td>One question at a time, <em>Question n of at most 3</em>, draft kept until <em>Continue</em> succeeds.</td></tr>
+  <tr><td>components/BuildPrompt.tsx</td><td><em>Build prompt</em> action — rendered only when no question is pending and no prompt exists; <em>Building…</em> state.</td></tr>
+  <tr><td>components/PromptEditor.tsx</td><td>Tall editable prompt; <em>Copy → Copied</em> (clipboard, no persistence); transient <em>✦ Updated</em> cue; <em>Understanding changed.</em> banner + <em>Update prompt</em>.</td></tr>
+  <tr><td>components/RecentDocks.tsx</td><td>Dock list (renders nothing when empty); relative time; row-click restore; quiet <em>✕</em> delete.</td></tr>
+  <tr><td>components/ThemeToggle.tsx</td><td>Cycles <code>data-theme</code> + writes <code>pmd.theme</code>; <code>useSyncExternalStore</code> + <code>MutationObserver</code> for reactive state.</td></tr>
+  <tr><td>lib/ai.ts</td><td>Provider chain: <code>providerOrder()</code>, <code>runChain()</code>, <code>complete()</code>, <code>completeParsed()</code>, <code>extractJson()</code>, <code>AiUnavailableError</code>. Env read at call time.</td></tr>
+  <tr><td>lib/prompts/shape.ts</td><td><code>SHAPE_SYSTEM_PROMPT</code> + <code>buildShapeUserMessage()</code> — the chips/question contract.</td></tr>
+  <tr><td>lib/prompts/build.ts</td><td><code>BUILD_SYSTEM_PROMPT</code>, <code>BuildModelInput</code>, <code>buildBuildUserMessage()</code> — the final prompt contract.</td></tr>
+  <tr><td>lib/validate-shape.ts</td><td><code>parseShapeResponse()</code> — validates model JSON before the route ever trusts it.</td></tr>
+  <tr><td>lib/types.ts</td><td><code>Field</code> (provenance), <code>Dock</code>, <code>ShapeResponse</code>, <code>MAX_QUESTIONS=3</code>, <code>MIN_THOUGHT_CHARS</code>, <code>MAX_DOCKS=10</code>, <code>STORAGE_KEYS</code>.</td></tr>
+  <tr><td>lib/dock-storage.ts</td><td><code>loadDocks</code>/<code>saveDock</code> (upsert · sort · cap)/<code>deleteDock</code>, <code>dockTitle()</code>, <code>loadTheme</code>/<code>setTheme</code>; try/catch on every access.</td></tr>
+  <tr><td>scripts/</td><td>Mechanical suites: <code>storage-smoke</code>, <code>test-shape</code>, <code>test-build</code>, <code>test-question-loop</code>, <code>test-build-route</code>, <code>test-docks</code>, <code>probe-ai</code>.</td></tr>
+</table>
+
+<h2 id="routes">3. The two routes</h2>
+<div class="grid2">
+  <div class="cardish">
+    <span class="k">POST /api/shape</span>
+    <ul>
+      <li>Validates body → <code>400 invalid_body</code> on malformed input.</li>
+      <li>Calls <code>completeParsed()</code> with <code>SHAPE_SYSTEM_PROMPT</code>; parse failure falls through the provider chain rather than surfacing.</li>
+      <li><strong>Server-side ceiling:</strong> when <code>questionCount ≥ MAX_QUESTIONS (3)</code> the route forces <code>needsFollowUp:false</code> even if the model asks — double insurance beside the client's own <code>payload.questionCount &lt; 3</code> guard.</li>
+      <li><strong>Response shape:</strong> route returns <code>{ interpretation: { fields }, needsFollowUp, question }</code> (model JSON has top-level <code>fields</code>; the route nests them). Feeding route JSON back into <code>parseShapeResponse()</code> fails by design.</li>
+      <li>Providers down → <code>502 ai_unavailable</code>.</li>
+    </ul>
+    <p class="src">app/api/shape/route.ts · lib/validate-shape.ts · lib/prompts/shape.ts</p>
+  </div>
+  <div class="cardish">
+    <span class="k">POST /api/build</span>
+    <ul>
+      <li>Validates: thought 3–6000 chars, <code>interpretation.fields</code> (label/value strings, provenance default <code>known</code>, ≤40), answers ≤5 → else <code>400</code>.</li>
+      <li><code>nothing to build from</code>: zero fields <em>and</em> zero answers → 400.</li>
+      <li>Calls <code>complete()</code> — <strong>not</strong> <code>json:true</code>: the contract is free prose, not JSON.</li>
+      <li>Empty completion or all providers failed → <code>502 ai_unavailable</code>, <strong>never a partial prompt</strong> (the failure branch can't leak half a result into the editor).</li>
+      <li>Route writes nothing: persistence is a client decision (a dock is written only when <code>prompt</code> actually arrives).</li>
+    </ul>
+    <p class="src">app/api/build/route.ts · lib/prompts/build.ts</p>
+  </div>
+</div>
+
+<h2 id="providers">4. Provider-chain path</h2>
+<table>
+  <tr><th>Symbol</th><th>Behavior</th></tr>
+  <tr><td><code>providerOrder()</code></td><td>Reads <code>AI_PROVIDER_ORDER</code> <em>at call time</em> (default <code>apmix,groq,gemini</code>), intersects with known providers, caps via <code>AI_MAX_FALLBACKS</code>.</td></tr>
+  <tr><td><code>runChain()</code></td><td>Loops the order, one attempt per provider; records <code>ProviderAttempt</code> per hop; throws <code>AiUnavailableError</code> when the chain is exhausted.</td></tr>
+  <tr><td><code>postChat()</code></td><td>Single HTTP call per provider with timeout (<code>AI_REQUEST_TIMEOUT_MS</code>); model chosen per provider from env (<code>APMIX_MODEL</code>, <code>GROQ_MODEL</code>, <code>GEMINI_MODEL</code>).</td></tr>
+  <tr><td><code>extractJson()</code></td><td>Strips <code>```json</code> fences — apmix and gemini wrap replies in them; groq returns bare JSON.</td></tr>
+  <tr><td><code>complete()</code></td><td>Returns <code>Completion {text, provider, model, latencyMs}</code> — used by /api/build (prose).</td></tr>
+  <tr><td><code>completeParsed()</code></td><td>Same chain but a parse failure counts as a failed attempt and falls through to the next provider — used by /api/shape.</td></tr>
+</table>
+<p>Because every read of the environment happens at call time, tests can blank the keys in-process and watch the chain genuinely fail (that's how <code>test-build-route.ts</code> proves the 502 path). Measured behavior: apmix ≈5–8s, gemini ≈1.3s, groq ≈0.8s.</p>
+<p class="src">lib/ai.ts · .env (gitignored: keys, base URL, models, provider order)</p>
+
+<h2 id="contracts">5. Prompt-contract files</h2>
+<ul>
+  <li><strong><code>lib/prompts/shape.ts</code></strong> — the system prompt that forces chips-as-JSON (<code>fields[]</code> with <code>id/label/value/provenance</code>), forbids placeholder values (<code>unknown</code>/<code>missing</code>/<code>TBD</code>/<code>N/A</code>), and defines when a single high-impact question is asked. <code>buildShapeUserMessage()</code> serializes thought + current interpretation + answers + <code>questionCount</code> + <code>lastQuestion</code> so every round re-evaluates the whole picture.</li>
+  <li><strong><code>lib/prompts/build.ts</code></strong> — the system prompt that compiles thought + fields + answers into a finished coding-agent prompt. <code>BuildModelInput</code> is the exact shape the client sends; <code>buildBuildUserMessage()</code> is its single serialization point.</li>
+  <li><strong><code>lib/validate-shape.ts</code></strong> — <code>parseShapeResponse()</code>: structural validation of model output (fields present, sane types) before anything renders.</li>
+  <li><strong><code>lib/types.ts</code></strong> — the shared vocabulary both contracts compile against: <code>Field</code>/<code>provenance</code>, <code>ShapeResponse</code>, caps (<code>MAX_QUESTIONS</code>, <code>MIN_THOUGHT_CHARS</code>, <code>MAX_DOCKS</code>).</li>
+</ul>
+<p class="src">10 adversarial shape cases + 3 build cases were run against these files at slice 3 (see checklist Evidence)</p>
+
+<h2 id="docks">6. localStorage &amp; Recent-docks lifecycle</h2>
+<table>
+  <tr><th>Moment</th><th>What happens</th></tr>
+  <tr><td>First successful generation</td><td><code>persistDock()</code> creates one row: <code>crypto.randomUUID()</code> id kept in a <strong>ref</strong> (never in storage — there is no <code>pmd.currentDockId</code>), title from <code>dockTitle()</code>, <code>promptEditedManually:false</code>, <code>createdAt = updatedAt = now</code>.</td></tr>
+  <tr><td>Later regeneration</td><td>Same id upserted (<code>saveDock</code> filters the id out, prepends, sorts by <code>updatedAt</code> desc, slices to <code>MAX_DOCKS=10</code>) — never a second row. Title recomputed, so editing the Goal chip retitles the dock.</td></tr>
+  <tr><td>Hand-typing in the editor</td><td>If a dock exists, each keystroke persists the edited prompt with <code>promptEditedManually:true</code> — so the reopened dock re-enters its exact protection state.</td></tr>
+  <tr><td><em>Update prompt</em> / any successful build</td><td>Flag persisted back to <code>false</code>.</td></tr>
+  <tr><td>Copy</td><td>Writes nothing. A failed build writes nothing.</td></tr>
+  <tr><td>Title rule</td><td><code>dockTitle()</code>: Goal (by id/label, case-insensitive) → first 6 meaningful thought words (punctuation-only tokens skipped) → <code>Untitled dock</code>.</td></tr>
+  <tr><td>Row click</td><td><code>restoreDock()</code> restores thought · fields + provenance · answers · questionCount · prompt · flag, scrolls top, fires <strong>zero</strong> API requests (verified: no auto-resume).</td></tr>
+  <tr><td>Row ✕</td><td><code>deleteDock(id)</code>; if the deleted id was the session id the ref resets, so the next build starts a new row.</td></tr>
+  <tr><td>Page load</td><td>Only <code>pmd.theme</code> + the dock list return (post-hydration effect, empty server snapshot). The screen itself always starts clean.</td></tr>
+  <tr><td>Write failure</td><td>Every access is try/caught: a quota/private-mode failure leaves the session running and existing docks intact — the dock just isn't persisted for next time.</td></tr>
+</table>
+<p class="src">lib/dock-storage.ts · app/page.tsx (persistDock/restoreDock/removeDock) · components/RecentDocks.tsx · scripts/storage-smoke.ts (22/22) · scripts/test-docks.ts (10/10)</p>
+
+<h2 id="sync">7. The <code>promptEditedManually</code> sync protection</h2>
+<p>This is the invariant the whole editor hangs on — the failure it prevents is <em>generated → hand-edited → chip edit → your wording silently overwritten</em>. The flag lives in <code>app/page.tsx</code>; <code>PromptEditor</code> emits change events upward rather than owning state, so slice 7 could persist it with the dock without touching the editor.</p>
+<table>
+  <tr><th>State</th><th>Chip edit / reshape</th><th>Network</th><th>Stored flag</th></tr>
+  <tr><td>Untouched (just generated)</td><td>Auto-regenerate immediately + transient <em>✦ Updated</em> cue</td><td>1 POST /api/build</td><td><code>false</code></td></tr>
+  <tr><td>Hand-edited</td><td><em>Understanding changed.</em> + <em>Update prompt</em>; prompt bytes untouched</td><td><strong>0</strong> requests</td><td><code>true</code> (persisted per keystroke)</td></tr>
+  <tr><td><em>Update prompt</em> pressed</td><td>Regenerate from latest chips, banner clears</td><td>1 POST /api/build</td><td><code>false</code></td></tr>
+</table>
+<ul>
+  <li>Single-flight for free: <code>Interpretation</code> is disabled while <code>promptBusy</code>, so the sync engine (event-driven, not a <code>useEffect</code> — an effect version deadlocked re-running on its own busy state) can't overlap requests.</li>
+  <li>Failure branches keep the invariant: a failed regeneration shows <em>Couldn't update the prompt.</em> and leaves the last good prompt byte-intact.</li>
+  <li>Reopened docks re-enter this table from the stored flag — a saved hand-edited dock is still protected after reload (verified with 0 regen calls).</li>
+</ul>
+<p class="src">app/page.tsx (handlePromptChange, handleFieldChange, runRegen) · components/PromptEditor.tsx · components/Interpretation.tsx</p>
+
+<h2 id="theme">8. Theme boot &amp; hydration path</h2>
+<ol>
+  <li><strong>Before paint:</strong> <code>ThemeBoot</code> inlines a tiny IIFE script into the document head — reads <code>pmd.theme</code>, sets <code>data-theme</code> on <code>&lt;html&gt;</code>. No flash of the wrong theme, and React never participates in this step.</li>
+  <li><strong>Hydration:</strong> the server snapshot reports <code>light</code>; the client reads the live DOM attribute via <code>useSyncExternalStore</code> — a <code>MutationObserver</code> on <code>data-theme</code> keeps them converged.</li>
+  <li><strong>Toggle:</strong> <code>ThemeToggle</code> flips the attribute and calls <code>setTheme()</code>; it does not read storage during render.</li>
+  <li><strong>Styling:</strong> components reference tokens only (<code>bg-panel border-line text-fg text-muted bg-green</code>); the dark root in <code>globals.css</code> swaps values (<code>#12291d</code> deep green-black, lime accent) — audit shows zero hardcoded colors outside the CSS.</li>
+</ol>
+<p class="src">app/theme-boot.tsx · components/ThemeToggle.tsx · app/globals.css</p>
+
+<h2 id="demopath">9. The demo path, step by step</h2>
+<p>The exact route the video walks (<code>scope.md</code>: thought → understanding → correction → usable prompt):</p>
+<ol>
+  <li><strong>Type</strong> the lending-tracker thought → <code>ThoughtInput</code> (guard passes at 3+ chars) → <code>handleSubmit()</code> → <code>runShape()</code> → <code>POST /api/shape</code>.</li>
+  <li><strong>Chips appear</strong> → <code>Interpretation</code> renders only model-returned fields; at most one <code>FollowUpQuestion</code> sits beneath, <em>Build prompt</em> is absent while it's pending.</li>
+  <li><strong>Answer</strong> → <code>handleContinue()</code> → another <code>/api/shape</code> round (client stops after 3; server forces the stop regardless) → <code>Build prompt</code> renders.</li>
+  <li><strong>Build</strong> → <code>handleBuild()</code> → <code>POST /api/build</code> → prompt lands in <code>PromptEditor</code> and the first dock row appears.</li>
+  <li><strong>Correction:</strong> click a chip → edit → Enter → <code>handleFieldChange()</code> → untouched → <code>runRegen()</code> → prompt visibly changes, <em>✦ Updated</em> flashes, the same dock updates.</li>
+  <li><strong>Copy</strong> → clipboard gets exactly the editor's bytes; no dock write.</li>
+  <li><strong>Aftermath:</strong> Recent docks row click restores everything; reload returns to the clean thought screen with list + theme intact.</li>
+</ol>
+
+<h2 id="verify">10. Verification inventory</h2>
+<table>
+  <tr><th>Suite</th><th>Result</th><th>Covers</th></tr>
+  <tr><td>scripts/storage-smoke.ts</td><td>22/22</td><td>Dock round-trip, upsert, cap 10, order, theme, simulated write failures</td></tr>
+  <tr><td>scripts/test-shape.ts</td><td>10/10</td><td>Adversarial shape-prompt contract cases</td></tr>
+  <tr><td>scripts/test-build.ts</td><td>3/3</td><td>Build prompt contract cases</td></tr>
+  <tr><td>scripts/test-question-loop.ts</td><td>pass</td><td>Route-level Gap Rule + forced 3-cap probe</td></tr>
+  <tr><td>scripts/test-build-route.ts</td><td>7/7</td><td>400s, forced 502 (keys blanked), 200 non-empty, no fence/preamble</td></tr>
+  <tr><td>scripts/test-docks.ts</td><td>10/10</td><td>Title rule, flag persistence per dock</td></tr>
+  <tr><td>.verify-slice4.mjs (headless Chrome)</td><td>11/11</td><td>Shape route + chips UI, exact wording, tooltips</td></tr>
+  <tr><td>.verify-slice5.mjs</td><td>9/9</td><td>Question loop, ≤4 requests, no 4th question</td></tr>
+  <tr><td>.verify-slice6.mjs</td><td>21/21</td><td>Both failure verbatims, clipboard, auto vs protected sync, forced outages</td></tr>
+  <tr><td>.verify-slice7.mjs</td><td>51/51</td><td>Demo path end to end, dock lifecycle, reload, dark mode, restore with 0 API calls, reopened-edit protection</td></tr>
+  <tr><td>npx tsc --noEmit · eslint</td><td>clean</td><td>Types + lint after every slice</td></tr>
+</table>
+<p class="src">Commits: 080c5fb scaffold → ff615d4 providers → a669d54 contracts → 7030c02 shape route → 08141cc question loop → 910801b build+editor → e414e6f docks+polish</p>
+
+<h2>11. A practice from this project worth reusing</h2>
+<p><strong>Force the failure path in every verification, not just the happy path.</strong> Each slice's evidence includes a deliberately broken run: providers blanked in-process to prove the 502, <code>route.abort()</code> mid-request to prove a failed build leaves no partial prompt and no lost work, a simulated <code>QuotaExceededError</code> to prove storage failures don't kill a session, and a hand-edit followed by a chip edit to prove the sync rule holds under the exact condition it was written for. Happy-path tests only prove the app works when nothing goes wrong — the PRD's guiding principle (<em>AI failure should cost the user time, never their work</em>) is only demonstrable when the tests make the AI fail on purpose. The same habit applies to any project that calls a model: ship the forced-failure test alongside the feature.</p>
+
+<div class="principle">Guiding principle: <b>AI failure should cost the user time, never their work.</b></div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    Prompt Dock Mini — Code Tour &amp; App Map · generated from the finished code, July 2026 build · review docs: <code>scope</code> · <code>prd</code> · <code>spec</code> · <code>checklist</code>
+  </div>
+</footer>
+
+</body>
+</html>

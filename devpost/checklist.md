@@ -99,12 +99,12 @@ Build mode: fast (agent implements end to end; learner is full-stack and drives 
 
 - [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
 - [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] ✅ `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: [what actually happened; real document/test/code references; unfinished work if interrupted]
-Route and stops: [actual paths and symbols; guided stops completed, or reference-only route]
-Edit outcome: [tried/kept/reverted/declined/not applicable; verification if changed]
-Reflection: [offered/answered/declined/already covered — personal answer belongs only in the ignored profile]
-Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
+Activity and evidence: `devpost/app-map.html` generated from the finished codebase after slice 7 (`e414e6f`), covering request/data-flow SVG, per-file ownership map (all 7 slices' files), both routes incl. server-side 3-cap and non-empty-JSON response contract, provider chain (`providerOrder`/`runChain`/`extractJson`/`complete` vs `completeParsed`), prompt-contract trio, `pmd.docks`/`pmd.theme` lifecycle incl. ref-only dock id and save-on-success, `promptEditedManually` state table, theme boot/hydration path, 7-step demo path, verification inventory (storage-smoke 22/22, test-shape 10/10, test-build 3/3, question-loop pass, build-route 7/7, docks 10/10, slice4 11/11, slice5 9/9, slice6 21/21, slice7 51/51, tsc+eslint clean), and a project-grounded practice to reuse (force the failure path in every verification). Checked: Python `html.parser` parse — 0 errors, tags balanced; self-contained, no CDN, style matched to `prd.html`. Learning-activity and reflection items above still open — closed at the final checkpoint.
+Route and stops: reference-only route through `app/page.tsx` (runShape/runRegen/handleBuild/persistDock), `app/api/shape/route.ts`, `app/api/build/route.ts`, `lib/ai.ts`, `lib/prompts/{shape,build}.ts`, `lib/dock-storage.ts`, `app/theme-boot.tsx`, `components/*` — every named symbol verified to exist in the repo.
+Edit outcome: app-map written fresh (first version); parse check passed first attempt; no reverts.
+Reflection: pending — final checkpoint.
+Activity mode: explicit static fallback (self-contained HTML) referencing the live app at localhost:3001.
 
 ## Revisions
