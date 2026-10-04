@@ -71,6 +71,21 @@ export function setTheme(theme: Theme): boolean {
   }
 }
 
+export function dockTitle(fields: readonly { id: string; label: string; value: string }[], thought: string): string {
+  const goal = fields.find(
+    (f) => f.id.toLowerCase() === "goal" || f.label.toLowerCase() === "goal",
+  );
+  const goalValue = goal?.value.trim();
+  if (goalValue) return goalValue;
+  const words = thought
+    .split(/\s+/)
+    .map((w) => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""))
+    .filter(Boolean)
+    .slice(0, 6);
+  if (words.length > 0) return words.join(" ");
+  return "Untitled dock";
+}
+
 function isDock(value: unknown): value is Dock {
   if (typeof value !== "object" || value === null) return false;
   const d = value as Partial<Dock>;

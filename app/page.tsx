@@ -5,8 +5,10 @@ import { BuildPrompt } from "../components/BuildPrompt";
 import { FollowUpQuestion } from "../components/FollowUpQuestion";
 import { Interpretation } from "../components/Interpretation";
 import { PromptEditor } from "../components/PromptEditor";
+import { RecentDocks } from "../components/RecentDocks";
 import { ThoughtInput } from "../components/ThoughtInput";
-import { Field, MAX_QUESTIONS, ShapeResponse } from "../lib/types";
+import { deleteDock, dockTitle, loadDocks, saveDock } from "../lib/dock-storage";
+import { Dock, Field, MAX_QUESTIONS, ShapeResponse } from "../lib/types";
 
 interface ShapePayload {
   thought: string;
@@ -35,8 +37,13 @@ export default function Home() {
   const [errorKind, setErrorKind] = useState<ErrorKind>(null);
   const [pending, setPending] = useState<ShapePayload | null>(null);
   const cueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dockIdRef = useRef<string | null>(null);
+  const [docks, setDocks] = useState<Dock[]>([]);
 
   useEffect(() => {
+    // localStorage can only be read after hydration; the server snapshot is empty by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDocks(loadDocks());
     return () => {
       if (cueTimer.current) clearTimeout(cueTimer.current);
     };
@@ -46,6 +53,58 @@ export default function Home() {
     setUpdatedCue(true);
     if (cueTimer.current) clearTimeout(cueTimer.current);
     cueTimer.current = setTimeout(() => setUpdatedCue(false), 2000);
+  }
+
+  function persistDock(
+    persistThought: string,
+    persistFields: Field[],
+    persistAnswers: string[],
+    persistPrompt: string,
+    manuallyEdited: boolean,
+  ) {
+    const existing = dockIdRef.current
+      ? loadDocks().find((d) => d.id === dockIdRef.current)
+      : undefined;
+    const id = dockIdRef.current ?? crypto.randomUUID();
+    dockIdRef.current = id;
+    const now = Date.now();
+    const ok = saveDock({
+      id,
+      title: dockTitle(persistFields, persistThought),
+      thought: persistThought,
+      fields: persistFields,
+      answers: persistAnswers,
+      questionCount,
+      prompt: persistPrompt,
+      promptEditedManually: manuallyEdited,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    });
+    if (ok) setDocks(loadDocks());
+  }
+
+  function restoreDock(dock: Dock) {
+    if (busy || promptBusy) return;
+    setThought(dock.thought);
+    setFields(dock.fields);
+    setAnswers(dock.answers);
+    setQuestionCount(dock.questionCount);
+    setPrompt(dock.prompt);
+    setPromptEditedManually(dock.promptEditedManually);
+    setPendingSync(false);
+    setQuestion(null);
+    setErrorKind(null);
+    setPending(null);
+    dockIdRef.current = dock.id;
+    window.scrollTo({ top: 0 });
+  }
+
+  function removeDock(id: string) {
+    if (!deleteDock(id)) return;
+    setDocks(loadDocks());
+    if (dockIdRef.current === id) {
+      dockIdRef.current = null;
+    }
   }
 
   async function postBuild(
@@ -82,6 +141,7 @@ export default function Home() {
       setPrompt(next);
       setPromptEditedManually(false);
       setPendingSync(false);
+      persistDock(buildThought, buildFields, buildAnswers, next, false);
       flashUpdated();
       return true;
     } catch {
@@ -165,6 +225,7 @@ export default function Home() {
       setPrompt(next);
       setPromptEditedManually(false);
       setPendingSync(false);
+      persistDock(thought, fields, answers, next, false);
     } catch {
       setErrorKind("build-first");
     } finally {
@@ -184,6 +245,9 @@ export default function Home() {
   function handlePromptChange(next: string) {
     setPrompt(next);
     setPromptEditedManually(true);
+    if (dockIdRef.current !== null && fields !== null) {
+      persistDock(thought, fields, answers, next, true);
+    }
   }
 
   function handleUpdatePrompt() {
@@ -210,11 +274,9 @@ export default function Home() {
         <>
           <section className="flex flex-col gap-2">
             <h1 className="text-2xl font-extrabold tracking-tight text-fg">
-              Drop the rough version of the idea here.
+              What are you trying to get done?
             </h1>
-            <p className="text-sm text-muted">
-              Half a sentence is fine. You will shape it next.
-            </p>
+            <p className="text-sm text-muted">Messy is fine.</p>
           </section>
 
           <ThoughtInput
@@ -222,6 +284,7 @@ export default function Home() {
             onChange={setThought}
             onSubmit={handleSubmit}
             busy={busy}
+            labelHidden
           />
           <p className="-mt-5 text-xs text-muted">
             No perfect prompt needed. Start with the rough idea.
@@ -293,6 +356,8 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <RecentDocks docks={docks} onRestore={restoreDock} onDelete={removeDock} />
     </main>
   );
 }

@@ -8,6 +8,7 @@ interface ThoughtInputProps {
   onSubmit: (thought: string) => void;
   busy?: boolean;
   label?: string;
+  labelHidden?: boolean;
   rows?: number;
   placeholder?: string;
 }
@@ -17,9 +18,10 @@ export function ThoughtInput({
   onChange,
   onSubmit,
   busy = false,
-  label = "What are you trying to do?",
+  label = "What are you trying to get done?",
+  labelHidden = false,
   rows = 5,
-  placeholder = "e.g. an app for tracking what I lend people so I stop forgetting who has what",
+  placeholder = "Describe it however it comes to mind…\nhelp me plan a portfolio site for my work",
 }: ThoughtInputProps) {
   const ready = isUsableThought(value);
 
@@ -32,7 +34,10 @@ export function ThoughtInput({
 
   return (
     <div className="flex flex-col gap-3">
-      <label htmlFor="thought" className="text-sm font-semibold text-muted">
+      <label
+        htmlFor="thought"
+        className={labelHidden ? "sr-only" : "text-sm font-semibold text-muted"}
+      >
         {label}
       </label>
       <textarea
