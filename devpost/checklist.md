@@ -88,23 +88,23 @@ Build mode: fast (agent implements end to end; learner is full-stack and drives 
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — after slice 4 (first interpretation chips on screen)
-- [ ] Final kick-the-tires exploration and feedback completed — after slice 7
+- [x] Early usable behavior explored — after slice 4 (first interpretation chips on screen). Waived into the final sign-off: behavior exercised by slice 4–7 harnesses (11/11, 9/9, 21/21, 51/51); learner ran the fast build hands-off and reported no pending feedback.
+- [x] Final kick-the-tires exploration and feedback completed — after slice 7. Final manual checklist delivered (7 pokes at `localhost:3001`); learner sign-off received with no issues reported.
 
 ## Final Review
 
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Final review complete — feedback resolved and learner confirms ready to ship. Learner: *"I've reviewed the finished Prompt Dock Mini build and I'm ready to ship."* Product behavior frozen from here — no further changes unless the manual run or demo recording exposes a real bug.
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap. Learner: the app map + build recap are sufficient; no additional guided coding exercise requested.
+- [x] Optional edit and transfer reflection addressed — **declined by learner** (app map and recap sufficient, no additional exercise needed). No answer invented; nothing to record in the profile.
 - [x] ✅ `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: `devpost/app-map.html` generated from the finished codebase after slice 7 (`e414e6f`), covering request/data-flow SVG, per-file ownership map (all 7 slices' files), both routes incl. server-side 3-cap and non-empty-JSON response contract, provider chain (`providerOrder`/`runChain`/`extractJson`/`complete` vs `completeParsed`), prompt-contract trio, `pmd.docks`/`pmd.theme` lifecycle incl. ref-only dock id and save-on-success, `promptEditedManually` state table, theme boot/hydration path, 7-step demo path, verification inventory (storage-smoke 22/22, test-shape 10/10, test-build 3/3, question-loop pass, build-route 7/7, docks 10/10, slice4 11/11, slice5 9/9, slice6 21/21, slice7 51/51, tsc+eslint clean), and a project-grounded practice to reuse (force the failure path in every verification). Checked: Python `html.parser` parse — 0 errors, tags balanced; self-contained, no CDN, style matched to `prd.html`. Learning-activity and reflection items above still open — closed at the final checkpoint.
+Activity and evidence: `devpost/app-map.html` generated from the finished codebase after slice 7 (`e414e6f`), covering request/data-flow SVG, per-file ownership map (all 7 slices' files), both routes incl. server-side 3-cap and non-empty-JSON response contract, provider chain (`providerOrder`/`runChain`/`extractJson`/`complete` vs `completeParsed`), prompt-contract trio, `pmd.docks`/`pmd.theme` lifecycle incl. ref-only dock id and save-on-success, `promptEditedManually` state table, theme boot/hydration path, 7-step demo path, verification inventory (storage-smoke 22/22, test-shape 10/10, test-build 3/3, question-loop pass, build-route 7/7, docks 10/10, slice4 11/11, slice5 9/9, slice6 21/21, slice7 51/51, tsc+eslint clean), and a project-grounded practice to reuse (force the failure path in every verification). Checked: Python `html.parser` parse — 0 errors, tags balanced; self-contained, no CDN, style matched to `prd.html`. Learning-activity and reflection items closed at final sign-off (recap sufficient; reflection declined by learner).
 Route and stops: reference-only route through `app/page.tsx` (runShape/runRegen/handleBuild/persistDock), `app/api/shape/route.ts`, `app/api/build/route.ts`, `lib/ai.ts`, `lib/prompts/{shape,build}.ts`, `lib/dock-storage.ts`, `app/theme-boot.tsx`, `components/*` — every named symbol verified to exist in the repo.
 Edit outcome: app-map written fresh (first version); parse check passed first attempt; no reverts.
-Reflection: pending — final checkpoint.
+Reflection: declined by learner at final sign-off (app map + recap sufficient; no additional exercise) — no personal answer recorded, by instruction.
 Activity mode: explicit static fallback (self-contained HTML) referencing the live app at localhost:3001.
 
 ## Revisions
