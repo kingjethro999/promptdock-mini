@@ -16,7 +16,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${manrope.variable} h-full antialiased`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${manrope.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <head>
         <ThemeBoot />
       </head>

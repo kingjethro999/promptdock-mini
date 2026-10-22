@@ -34,16 +34,16 @@ Create a `.env` in the repo root (never commit it — `.env` is gitignored). At 
 
 See `.env.example` for a fillable template.
 
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `APMIX_API_KEY` | one of the three | — | APMIX provider key |
-| `GROQ_API_KEY` | one of the three | — | Groq provider key |
-| `GEMINI_API_KEY` | one of the three | — | Google Gemini provider key |
-| `AI_PROVIDER_ORDER` | no | `apmix,groq,gemini` | Fallback order, comma-separated |
-| `AI_MAX_FALLBACKS` | no | `2` | Max provider attempts per request |
-| `AI_REQUEST_TIMEOUT_MS` | no | `12000` | Per-provider timeout |
-| `APMIX_BASE_URL` | no | APMIX default | Override APMIX endpoint |
-| `APMIX_MODEL` / `GROQ_MODEL` / `GEMINI_MODEL` | no | built-in defaults | Override per-provider model |
+| Variable                                      | Required         | Default             | Purpose                           |
+| --------------------------------------------- | ---------------- | ------------------- | --------------------------------- |
+| `APMIX_API_KEY`                               | one of the three | —                   | APMIX provider key                |
+| `GROQ_API_KEY`                                | one of the three | —                   | Groq provider key                 |
+| `GEMINI_API_KEY`                              | one of the three | —                   | Google Gemini provider key        |
+| `AI_PROVIDER_ORDER`                           | no               | `apmix,groq,gemini` | Fallback order, comma-separated   |
+| `AI_MAX_FALLBACKS`                            | no               | `2`                 | Max provider attempts per request |
+| `AI_REQUEST_TIMEOUT_MS`                       | no               | `12000`             | Per-provider timeout              |
+| `APMIX_BASE_URL`                              | no               | APMIX default       | Override APMIX endpoint           |
+| `APMIX_MODEL` / `GROQ_MODEL` / `GEMINI_MODEL` | no               | built-in defaults   | Override per-provider model       |
 
 Provider credentials are read on the server only (`lib/ai.ts`, API routes) — they never reach the browser.
 

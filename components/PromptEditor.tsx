@@ -48,7 +48,9 @@ export function PromptEditor({
       <div className="flex items-center justify-between gap-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">
           Your prompt
-          {updatedCue && <span className="text-xs font-medium text-green">✦ Updated</span>}
+          {updatedCue && (
+            <span className="text-xs font-medium text-green">✦ Updated</span>
+          )}
         </h2>
         <button
           type="button"

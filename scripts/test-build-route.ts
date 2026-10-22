@@ -1,11 +1,22 @@
 import { POST } from "../app/api/build/route";
 
 const GOOD_BODY = {
-  thought: "I want an app for tracking stuff I lend people because I always forget who has what.",
+  thought:
+    "I want an app for tracking stuff I lend people because I always forget who has what.",
   interpretation: {
     fields: [
-      { id: "goal", label: "Goal", value: "Track lent items and who has them", provenance: "known" },
-      { id: "audience", label: "Audience", value: "Personal use", provenance: "inferred" },
+      {
+        id: "goal",
+        label: "Goal",
+        value: "Track lent items and who has them",
+        provenance: "known",
+      },
+      {
+        id: "audience",
+        label: "Audience",
+        value: "Personal use",
+        provenance: "inferred",
+      },
     ],
   },
   answers: [],
@@ -29,7 +40,11 @@ function check(name: string, ok: boolean, detail = ""): void {
 
 async function main(): Promise<void> {
   const bad = await call({ thought: "x" });
-  check("short thought → 400 invalid_body", bad.status === 400, `HTTP ${bad.status}`);
+  check(
+    "short thought → 400 invalid_body",
+    bad.status === 400,
+    `HTTP ${bad.status}`,
+  );
 
   const empty = await call({ thought: "a valid thought here" });
   check(
@@ -63,8 +78,16 @@ async function main(): Promise<void> {
   const ok = await call(GOOD_BODY);
   const okBody = (await ok.json()) as { prompt?: string };
   const prompt = okBody.prompt ?? "";
-  check("valid build → 200 with a prompt", ok.status === 200, `HTTP ${ok.status}`);
-  check("prompt is non-trivial", prompt.trim().length > 80, `${prompt.length} chars`);
+  check(
+    "valid build → 200 with a prompt",
+    ok.status === 200,
+    `HTTP ${ok.status}`,
+  );
+  check(
+    "prompt is non-trivial",
+    prompt.trim().length > 80,
+    `${prompt.length} chars`,
+  );
   check("prompt has no wrapping fence", !prompt.startsWith("```"));
   check(
     "prompt has no chat preamble",

@@ -14,7 +14,9 @@ function subscribe(onStoreChange: () => void): () => void {
 }
 
 function getSnapshot(): Theme {
-  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  return document.documentElement.getAttribute("data-theme") === "dark"
+    ? "dark"
+    : "light";
 }
 
 function getServerSnapshot(): Theme {

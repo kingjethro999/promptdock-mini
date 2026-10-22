@@ -9,7 +9,11 @@ interface InterpretationProps {
   disabled?: boolean;
 }
 
-export function Interpretation({ fields, onChange, disabled = false }: InterpretationProps) {
+export function Interpretation({
+  fields,
+  onChange,
+  disabled = false,
+}: InterpretationProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
 

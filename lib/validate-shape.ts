@@ -4,8 +4,7 @@ import { Field, ShapeResponse } from "./types";
 const PLACEHOLDER = /\b(missing|unknown|tbd|n\/a)\b/i;
 
 export type ShapeParseResult =
-  | { ok: true; value: ShapeResponse }
-  | { ok: false; reason: string };
+  { ok: true; value: ShapeResponse } | { ok: false; reason: string };
 
 export function parseShapeResponse(text: string): ShapeParseResult {
   let parsed: unknown;
@@ -43,20 +42,34 @@ export function parseShapeResponse(text: string): ShapeParseResult {
       return { ok: false, reason: `field ${i} has an empty value` };
     }
     if (f.provenance !== "known" && f.provenance !== "inferred") {
-      return { ok: false, reason: `field ${i} has bad provenance "${String(f.provenance)}"` };
+      return {
+        ok: false,
+        reason: `field ${i} has bad provenance "${String(f.provenance)}"`,
+      };
     }
     const haystack = `${f.id} ${f.label} ${f.value}`;
     if (PLACEHOLDER.test(haystack)) {
-      return { ok: false, reason: `field ${i} carries placeholder state: "${haystack.slice(0, 80)}"` };
+      return {
+        ok: false,
+        reason: `field ${i} carries placeholder state: "${haystack.slice(0, 80)}"`,
+      };
     }
-    fields.push({ id: f.id, label: f.label, value: f.value, provenance: f.provenance });
+    fields.push({
+      id: f.id,
+      label: f.label,
+      value: f.value,
+      provenance: f.provenance,
+    });
   }
 
   if (typeof obj.needsFollowUp !== "boolean") {
     return { ok: false, reason: "needsFollowUp is not a boolean" };
   }
   if (fields.length === 0 && !obj.needsFollowUp) {
-    return { ok: false, reason: "empty interpretation with no question to ask" };
+    return {
+      ok: false,
+      reason: "empty interpretation with no question to ask",
+    };
   }
   const question = obj.question;
   if (obj.needsFollowUp) {
@@ -73,7 +86,10 @@ export function parseShapeResponse(text: string): ShapeParseResult {
     };
   }
   if (question !== null && question !== undefined && question !== "") {
-    return { ok: false, reason: "question present while needsFollowUp is false" };
+    return {
+      ok: false,
+      reason: "question present while needsFollowUp is false",
+    };
   }
   return {
     ok: true,

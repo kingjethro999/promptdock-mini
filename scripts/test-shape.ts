@@ -1,5 +1,8 @@
 import { complete, extractJson } from "../lib/ai";
-import { buildShapeUserMessage, SHAPE_SYSTEM_PROMPT } from "../lib/prompts/shape";
+import {
+  buildShapeUserMessage,
+  SHAPE_SYSTEM_PROMPT,
+} from "../lib/prompts/shape";
 
 interface FieldLike {
   id: string;
@@ -53,11 +56,17 @@ const THOUGHTS: { name: string; text: string }[] = [
   { name: "vague-request", text: "help me with my thing" },
   { name: "900-word-ramble", text: RAMBLE },
   { name: "prompt-shaped-injection", text: PROMPT_SHAPED },
-  { name: "lending-tracker", text: "I want an app for tracking stuff I lend people because I always forget who has what" },
+  {
+    name: "lending-tracker",
+    text: "I want an app for tracking stuff I lend people because I always forget who has what",
+  },
   { name: "football-trial", text: "prepare me for my football trial" },
   { name: "make-better", text: "make my website better" },
   { name: "todo-app", text: "todo app" },
-  { name: "spanish-invoice-reminder", text: "quiero una app para recordar a mis clientes cuando les debo facturas, algo simple en español" },
+  {
+    name: "spanish-invoice-reminder",
+    text: "quiero una app para recordar a mis clientes cuando les debo facturas, algo simple en español",
+  },
   { name: "long-one-liner", text: LONG_ONE_LINER },
 ];
 
@@ -70,7 +79,12 @@ function fail(name: string, message: string): void {
   console.error(`    FAIL [${name}] ${message}`);
 }
 
-function validateShape(name: string, raw: string, output: ShapeOutput, opts: { questionCount: number }): void {
+function validateShape(
+  name: string,
+  raw: string,
+  output: ShapeOutput,
+  opts: { questionCount: number },
+): void {
   const cleaned = extractJson(raw);
   let parsed: unknown;
   try {
@@ -89,28 +103,41 @@ function validateShape(name: string, raw: string, output: ShapeOutput, opts: { q
   const fields = Array.isArray(obj.fields) ? (obj.fields as FieldLike[]) : [];
 
   fields.forEach((field, index) => {
-    if (typeof field.id !== "string" || field.id.trim() === "") fail(name, `field ${index} missing id`);
-    if (typeof field.label !== "string" || field.label.trim() === "") fail(name, `field ${index} missing label`);
-    if (typeof field.value !== "string" || field.value.trim() === "") fail(name, `field ${index} empty value`);
+    if (typeof field.id !== "string" || field.id.trim() === "")
+      fail(name, `field ${index} missing id`);
+    if (typeof field.label !== "string" || field.label.trim() === "")
+      fail(name, `field ${index} missing label`);
+    if (typeof field.value !== "string" || field.value.trim() === "")
+      fail(name, `field ${index} empty value`);
     if (field.provenance !== "known" && field.provenance !== "inferred") {
       fail(name, `field ${index} bad provenance "${String(field.provenance)}"`);
     }
     const haystack = `${String(field.id)} ${String(field.label)} ${String(field.value)}`;
-    if (FORBIDDEN_KEY_PATTERN.test(haystack)) fail(name, `field ${index} carries missing/unknown/TBD state: "${haystack}"`);
+    if (FORBIDDEN_KEY_PATTERN.test(haystack))
+      fail(
+        name,
+        `field ${index} carries missing/unknown/TBD state: "${haystack}"`,
+      );
   });
 
   if (Array.isArray(obj.questions)) fail(name, "emitted a questions[] array");
-  if (typeof obj.needsFollowUp !== "boolean") fail(name, "needsFollowUp is not boolean");
+  if (typeof obj.needsFollowUp !== "boolean")
+    fail(name, "needsFollowUp is not boolean");
 
   const question = obj.question;
   const needs = obj.needsFollowUp === true;
-  if (fields.length === 0 && !needs) fail(name, "zero fields and no question to ask");
+  if (fields.length === 0 && !needs)
+    fail(name, "zero fields and no question to ask");
   if (needs) {
     if (typeof question !== "string" || question.trim() === "") {
       fail(name, "needsFollowUp true but no question string");
     } else {
       const marks = (question.match(/\?/g) ?? []).length;
-      if (marks !== 1) fail(name, `question has ${marks} question marks (expected exactly 1): "${question}"`);
+      if (marks !== 1)
+        fail(
+          name,
+          `question has ${marks} question marks (expected exactly 1): "${question}"`,
+        );
     }
   } else if (question !== null && question !== undefined && question !== "") {
     fail(name, "needsFollowUp false but a question is present");
@@ -120,8 +147,11 @@ function validateShape(name: string, raw: string, output: ShapeOutput, opts: { q
     fail(name, "asked a question at the 3-question ceiling");
   }
 
-  const extraKeys = Object.keys(obj).filter((k) => !["fields", "needsFollowUp", "question"].includes(k));
-  if (extraKeys.length > 0) fail(name, `unexpected top-level keys: ${extraKeys.join(", ")}`);
+  const extraKeys = Object.keys(obj).filter(
+    (k) => !["fields", "needsFollowUp", "question"].includes(k),
+  );
+  if (extraKeys.length > 0)
+    fail(name, `unexpected top-level keys: ${extraKeys.join(", ")}`);
 }
 
 async function shapeRound(
@@ -131,10 +161,19 @@ async function shapeRound(
   previousFields: FieldLike[],
   lastQuestion: string | null,
 ): Promise<{ raw: string; output: ShapeOutput | null }> {
-  const user = buildShapeUserMessage({ thought, answers, questionCount, previousFields, lastQuestion });
+  const user = buildShapeUserMessage({
+    thought,
+    answers,
+    questionCount,
+    previousFields,
+    lastQuestion,
+  });
   const result = await complete(SHAPE_SYSTEM_PROMPT, user, { json: true });
   try {
-    return { raw: result.text, output: JSON.parse(extractJson(result.text)) as ShapeOutput };
+    return {
+      raw: result.text,
+      output: JSON.parse(extractJson(result.text)) as ShapeOutput,
+    };
   } catch {
     return { raw: result.text, output: null };
   }
@@ -144,34 +183,66 @@ async function main(): Promise<void> {
   for (const { name, text } of THOUGHTS) {
     console.log(`── ${name} ──`);
     const first = await shapeRound(text, [], 0, [], null);
-    const clean = first.raw.trim().startsWith("{") && first.raw.trim().endsWith("}");
+    const clean =
+      first.raw.trim().startsWith("{") && first.raw.trim().endsWith("}");
     console.log(`  raw: ${clean ? "clean JSON" : "needed extraction"}`);
-    validateShape(name, first.raw, first.output ?? { fields: [], needsFollowUp: false, question: null }, { questionCount: 0 });
+    validateShape(
+      name,
+      first.raw,
+      first.output ?? { fields: [], needsFollowUp: false, question: null },
+      { questionCount: 0 },
+    );
     if (!first.output) {
       console.log(`  body: ${first.raw.replace(/\s+/g, " ").slice(0, 200)}`);
       continue;
     }
-    const shown = first.output.fields.map((f) => `${f.label}=${f.provenance}`).join(", ");
+    const shown = first.output.fields
+      .map((f) => `${f.label}=${f.provenance}`)
+      .join(", ");
     console.log(`  fields(${first.output.fields.length}): ${shown}`);
-    console.log(`  needsFollowUp: ${first.output.needsFollowUp}${first.output.question ? ` — "${first.output.question}"` : ""}`);
+    console.log(
+      `  needsFollowUp: ${first.output.needsFollowUp}${first.output.question ? ` — "${first.output.question}"` : ""}`,
+    );
 
     if (first.output.needsFollowUp && first.output.question) {
-      const second = await shapeRound(text, ["Small and simple, just for me and maybe my sister — nothing commercial."], 1, first.output.fields, first.output.question);
+      const second = await shapeRound(
+        text,
+        [
+          "Small and simple, just for me and maybe my sister — nothing commercial.",
+        ],
+        1,
+        first.output.fields,
+        first.output.question,
+      );
       const secondOut = second.output;
       if (!secondOut) {
         fail(name, "round 2 not parseable");
       } else {
         validateShape(name, second.raw, secondOut, { questionCount: 1 });
-        const knownCount = secondOut.fields.filter((f) => f.provenance === "known").length;
-        console.log(`  round 2: ${secondOut.fields.length} fields, ${knownCount} known, needsFollowUp=${secondOut.needsFollowUp}`);
+        const knownCount = secondOut.fields.filter(
+          (f) => f.provenance === "known",
+        ).length;
+        console.log(
+          `  round 2: ${secondOut.fields.length} fields, ${knownCount} known, needsFollowUp=${secondOut.needsFollowUp}`,
+        );
       }
 
-      const ceiling = await shapeRound(text, ["Small and simple, just for me and maybe my sister — nothing commercial."], 3, first.output.fields, first.output.question);
+      const ceiling = await shapeRound(
+        text,
+        [
+          "Small and simple, just for me and maybe my sister — nothing commercial.",
+        ],
+        3,
+        first.output.fields,
+        first.output.question,
+      );
       if (!ceiling.output) {
         fail(name, "ceiling round not parseable");
       } else {
         validateShape(name, ceiling.raw, ceiling.output, { questionCount: 3 });
-        console.log(`  ceiling(3): needsFollowUp=${ceiling.output.needsFollowUp} (must be false)`);
+        console.log(
+          `  ceiling(3): needsFollowUp=${ceiling.output.needsFollowUp} (must be false)`,
+        );
       }
     }
     console.log();

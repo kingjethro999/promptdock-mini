@@ -50,7 +50,9 @@ export function buildShapeUserMessage(input: ShapeModelInput): string {
   lines.push(`QUESTION COUNT: ${input.questionCount}`);
   if (input.previousFields.length > 0) {
     lines.push("");
-    lines.push(`PREVIOUS FIELDS (update these in place — incorporate answers, keep wording the user did not change):`);
+    lines.push(
+      `PREVIOUS FIELDS (update these in place — incorporate answers, keep wording the user did not change):`,
+    );
     lines.push(JSON.stringify(input.previousFields, null, 2));
   }
   if (input.answers.length > 0) {

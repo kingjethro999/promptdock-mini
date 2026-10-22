@@ -71,7 +71,10 @@ export function setTheme(theme: Theme): boolean {
   }
 }
 
-export function dockTitle(fields: readonly { id: string; label: string; value: string }[], thought: string): string {
+export function dockTitle(
+  fields: readonly { id: string; label: string; value: string }[],
+  thought: string,
+): string {
   const goal = fields.find(
     (f) => f.id.toLowerCase() === "goal" || f.label.toLowerCase() === "goal",
   );

@@ -7,7 +7,12 @@ import { Interpretation } from "../components/Interpretation";
 import { PromptEditor } from "../components/PromptEditor";
 import { RecentDocks } from "../components/RecentDocks";
 import { ThoughtInput } from "../components/ThoughtInput";
-import { deleteDock, dockTitle, loadDocks, saveDock } from "../lib/dock-storage";
+import {
+  deleteDock,
+  dockTitle,
+  loadDocks,
+  saveDock,
+} from "../lib/dock-storage";
 import { Dock, Field, MAX_QUESTIONS, ShapeResponse } from "../lib/types";
 
 interface ShapePayload {
@@ -152,7 +157,9 @@ export default function Home() {
     }
   }
 
-  async function runShape(payload: ShapePayload): Promise<ShapeResponse | null> {
+  async function runShape(
+    payload: ShapePayload,
+  ): Promise<ShapeResponse | null> {
     setBusy(true);
     setErrorKind(null);
     setPending(payload);
@@ -174,7 +181,11 @@ export default function Home() {
       if (prompt !== null) {
         setPendingSync(true);
         if (!promptEditedManually) {
-          void runRegen(payload.thought, data.interpretation.fields, payload.answers);
+          void runRegen(
+            payload.thought,
+            data.interpretation.fields,
+            payload.answers,
+          );
         }
       }
       return data;
@@ -266,7 +277,10 @@ export default function Home() {
   const errorCopy =
     errorKind === "build-regen"
       ? { headline: "Couldn't update the prompt.", quiet: null }
-      : { headline: "Couldn't build the prompt.", quiet: "Your work is still here." };
+      : {
+          headline: "Couldn't build the prompt.",
+          quiet: "Your work is still here.",
+        };
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-10">
@@ -305,7 +319,9 @@ export default function Home() {
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-muted">What I understood</h2>
+            <h2 className="text-sm font-semibold text-muted">
+              What I understood
+            </h2>
             <Interpretation
               fields={fields}
               onChange={handleFieldChange}
@@ -323,7 +339,10 @@ export default function Home() {
           )}
 
           {question === null && prompt === null && (
-            <BuildPrompt busy={busy || promptBusy} onBuild={() => void handleBuild()} />
+            <BuildPrompt
+              busy={busy || promptBusy}
+              onBuild={() => void handleBuild()}
+            />
           )}
 
           {prompt !== null && (
@@ -352,12 +371,18 @@ export default function Home() {
             >
               Try again
             </button>
-            {errorCopy.quiet && <span className="text-xs text-muted">{errorCopy.quiet}</span>}
+            {errorCopy.quiet && (
+              <span className="text-xs text-muted">{errorCopy.quiet}</span>
+            )}
           </div>
         </div>
       )}
 
-      <RecentDocks docks={docks} onRestore={restoreDock} onDelete={removeDock} />
+      <RecentDocks
+        docks={docks}
+        onRestore={restoreDock}
+        onDelete={removeDock}
+      />
     </main>
   );
 }

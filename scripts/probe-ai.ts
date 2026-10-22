@@ -1,4 +1,10 @@
-import { AiUnavailableError, complete, extractJson, ProviderName, providerOrder } from "../lib/ai";
+import {
+  AiUnavailableError,
+  complete,
+  extractJson,
+  ProviderName,
+  providerOrder,
+} from "../lib/ai";
 
 const ALL: ProviderName[] = ["apmix", "groq", "gemini"];
 
@@ -14,7 +20,9 @@ function summarize(value: string, max = 220): string {
   return flat.length > max ? `${flat.slice(0, max)}…` : flat;
 }
 
-async function probePlain(provider: ProviderName): Promise<{ ok: boolean; detail: string }> {
+async function probePlain(
+  provider: ProviderName,
+): Promise<{ ok: boolean; detail: string }> {
   try {
     const result = await complete(
       "You are a strict JSON machine. Respond with JSON only.",
@@ -34,9 +42,15 @@ async function probePlain(provider: ProviderName): Promise<{ ok: boolean; detail
     };
   } catch (error) {
     if (error instanceof AiUnavailableError) {
-      return { ok: false, detail: error.attempts.map((a) => a.reason).join("; ") };
+      return {
+        ok: false,
+        detail: error.attempts.map((a) => a.reason).join("; "),
+      };
     }
-    return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+    return {
+      ok: false,
+      detail: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -76,7 +90,9 @@ async function probeFallback(): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  console.log(`Provider order: ${providerOrder().join(" → ")} (max ${Number(process.env.AI_MAX_FALLBACKS ?? 2)} fallbacks)\n`);
+  console.log(
+    `Provider order: ${providerOrder().join(" → ")} (max ${Number(process.env.AI_MAX_FALLBACKS ?? 2)} fallbacks)\n`,
+  );
   const results: ProbeResult[] = [];
 
   for (const provider of ALL) {
@@ -85,7 +101,12 @@ async function main(): Promise<void> {
     console.log(`  plain:     ${plain.ok ? "PASS" : "FAIL"} — ${plain.detail}`);
     const jsonMode = await probeJsonMode(provider);
     console.log(`  json mode: ${jsonMode}`);
-    results.push({ provider, plainJson: plain.detail, jsonMode, parseable: plain.ok });
+    results.push({
+      provider,
+      plainJson: plain.detail,
+      jsonMode,
+      parseable: plain.ok,
+    });
     console.log();
   }
 
@@ -97,7 +118,9 @@ async function main(): Promise<void> {
     console.error("No provider returned parseable JSON.");
     process.exit(1);
   }
-  console.log(`PASS: ${passing.map((r) => r.provider).join(", ")} returned parseable JSON.`);
+  console.log(
+    `PASS: ${passing.map((r) => r.provider).join(", ")} returned parseable JSON.`,
+  );
   console.log("Notes:");
   for (const r of results) {
     console.log(`  ${r.provider}: ${r.jsonMode}`);

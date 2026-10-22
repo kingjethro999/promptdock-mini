@@ -10,17 +10,17 @@ Source: `scope.md > The Unique Kernel`, `scope.md > The Core Loop`.
 
 ## The Core Journey
 
-1. The user opens the page. There is one large input, a heading — *"What are you trying to get done?"* — and a quiet line under it: *"Messy is fine."* Nothing else competes for attention. If they have docks before, they appear below; if not, the page shows nothing there.
-2. They type a rough thought. The placeholder and its example copy — *"Describe it however it comes to mind…"* — tell them they don't need to phrase it well. `Shape this` enables once the input holds at least 3 non-whitespace characters.
-3. They press `Shape this` (or Cmd/Ctrl + Enter). The button reads *Shaping…* and duplicate submissions are blocked. The page grows downward: the thought compacts into an editable field labelled *"Your thought"*, and beneath it a heading — *"What I understood"* — appears with the interpretation as compact chips.
-4. Each chip is marked **known** (plain) or **inferred** (tiny sparkle, dotted underline, *"Inferred from your thought"* on hover). Only relevant fields appear; no rigid schema. Clicking a chip makes its value editable inline. Manually editing an inferred value makes it known.
-5. If a materially important gap remains, one question appears directly under the chips — *"One thing I need to know"* — one at a time, up to 3. After each answer the interpretation updates and gaps re-evaluate. Unresolved gaps after the third question become visible inferred assumptions. `Build prompt` is not rendered while a question is pending.
-6. When no high-impact question remains, `Build prompt` appears as the strongest action on the page. They press it; it reads *Building…*.
-7. The page grows downward again: *"Your prompt"* — a tall, editable text editor containing the generated prompt, with `Copy` as the only always-available action.
+1. The user opens the page. There is one large input, a heading — _"What are you trying to get done?"_ — and a quiet line under it: _"Messy is fine."_ Nothing else competes for attention. If they have docks before, they appear below; if not, the page shows nothing there.
+2. They type a rough thought. The placeholder and its example copy — _"Describe it however it comes to mind…"_ — tell them they don't need to phrase it well. `Shape this` enables once the input holds at least 3 non-whitespace characters.
+3. They press `Shape this` (or Cmd/Ctrl + Enter). The button reads _Shaping…_ and duplicate submissions are blocked. The page grows downward: the thought compacts into an editable field labelled _"Your thought"_, and beneath it a heading — _"What I understood"_ — appears with the interpretation as compact chips.
+4. Each chip is marked **known** (plain) or **inferred** (tiny sparkle, dotted underline, _"Inferred from your thought"_ on hover). Only relevant fields appear; no rigid schema. Clicking a chip makes its value editable inline. Manually editing an inferred value makes it known.
+5. If a materially important gap remains, one question appears directly under the chips — _"One thing I need to know"_ — one at a time, up to 3. After each answer the interpretation updates and gaps re-evaluate. Unresolved gaps after the third question become visible inferred assumptions. `Build prompt` is not rendered while a question is pending.
+6. When no high-impact question remains, `Build prompt` appears as the strongest action on the page. They press it; it reads _Building…_.
+7. The page grows downward again: _"Your prompt"_ — a tall, editable text editor containing the generated prompt, with `Copy` as the only always-available action.
 8. The dock is written to Recent docks the moment generation succeeds. Copy only copies.
-9. They edit an interpretation chip. Because the generated prompt has not been touched by hand, the prompt updates on the spot with a brief *"Updated"* marker — no second `Build prompt` press.
-10. If they *have* hand-edited the prompt, chip edits never overwrite it. Instead: *"Understanding changed."* with an `Update prompt` action.
-11. They press `Copy` → the button reads *Copied*. The end state is a prompt they understand, can still edit, and can copy.
+9. They edit an interpretation chip. Because the generated prompt has not been touched by hand, the prompt updates on the spot with a brief _"Updated"_ marker — no second `Build prompt` press.
+10. If they _have_ hand-edited the prompt, chip edits never overwrite it. Instead: _"Understanding changed."_ with an `Update prompt` action.
+11. They press `Copy` → the button reads _Copied_. The end state is a prompt they understand, can still edit, and can copy.
 
 There is no success screen, no score, no confetti. The proof is the prompt itself, traceable back through the thought.
 
@@ -31,7 +31,7 @@ One screen, not several. The product is a single page that **grows downward as u
 Top to bottom:
 
 1. **Header** — `Prompt Dock Mini` wordmark left, theme toggle right. No nav links, account button, or help menu.
-2. **Thought** — heading, quiet supporting line, one large multiline input, `Shape this` attached to or inside it, and one subtle reassurance: *"No perfect prompt needed. Start with the rough idea."* After shaping it compacts and is relabelled *"Your thought"*, still editable; resubmitting recomputes the interpretation rather than preserving stale chips.
+2. **Thought** — heading, quiet supporting line, one large multiline input, `Shape this` attached to or inside it, and one subtle reassurance: _"No perfect prompt needed. Start with the rough idea."_ After shaping it compacts and is relabelled _"Your thought"_, still editable; resubmitting recomputes the interpretation rather than preserving stale chips.
 3. **What I understood** — quiet heading, then chips grouped into only the fields that apply (Goal, Audience, Context, Requirements, Output — illustrative, not a fixed schema).
 4. **Follow-up question** (conditional) — inline beneath the chips, never a modal or chat window.
 5. **`Build prompt`** (conditional) — rendered only when no high-impact question is pending.
@@ -42,11 +42,11 @@ Source: `scope.md > The Core Loop`, `scope.md > The Unique Kernel`.
 
 ## Look and Feel
 
-*"An editorial writing tool with the calmness of a field notebook and the precision of a developer tool."*
+_"An editorial writing tool with the calmness of a field notebook and the precision of a developer tool."_
 
 - **Light mode is the primary/reference design.** Warm off-white / ivory-tinted surfaces, never harsh pure white.
 - **Dark mode is a deliverable** (theme toggle ships), using near-black / deep neutral, deep green-black surfaces with restrained green accents — same family, not a neutral gray inversion.
-- **Accent:** calm, muted green as the single accent. It carries the sparkle, the *inferred* cue, and the primary button. No second semantic color is introduced for provenance.
+- **Accent:** calm, muted green as the single accent. It carries the sparkle, the _inferred_ cue, and the primary button. No second semantic color is introduced for provenance.
 - **Type:** Manrope as the primary face. Headings get confidence from spacing, size and weight — not decorative fonts. Monospace appears sparingly for prompt detail or small metadata; the product must not read as a terminal.
 - **Hierarchy:** whitespace and typography first, borders and cards second, color third.
 - **The thought and the prompt are the loudest things on the screen.**
@@ -61,11 +61,11 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 
 - Header: wordmark left, theme toggle right. Nothing else.
 - Centered main content with a slight upper-center bias.
-- Heading: *"What are you trying to get done?"*
-- Supporting line: *"Messy is fine."*
-- One large multiline input — a thought box, not a form field — with placeholder *"Describe it however it comes to mind…"*.
+- Heading: _"What are you trying to get done?"_
+- Supporting line: _"Messy is fine."_
+- One large multiline input — a thought box, not a form field — with placeholder _"Describe it however it comes to mind…"_.
 - **Examples are placeholder copy only.** They are never clickable cards, templates, or suggestions.
-- Reassurance under the input: *"No perfect prompt needed. Start with the rough idea."*
+- Reassurance under the input: _"No perfect prompt needed. Start with the rough idea."_
 - `Shape this`: disabled below 3 non-whitespace characters after trimming, enabled at or above. No validation message — the disabled state says enough. No semantic or AI-based judgment of whether input is "good enough"; extremely vague input goes through.
 - Cmd/Ctrl + Enter submits.
 
@@ -74,8 +74,8 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 
 ### Shaping
 
-- On submit: button reads *Shaping…*, thought stays visible, duplicate submission blocked.
-- On success: thought compacts to an editable *"Your thought"* field with the user's exact wording untouched; *"What I understood"* appears below with chips.
+- On submit: button reads _Shaping…_, thought stays visible, duplicate submission blocked.
+- On success: thought compacts to an editable _"Your thought"_ field with the user's exact wording untouched; _"What I understood"_ appears below with chips.
 - Editing the thought and resubmitting **recalculates** the interpretation — chips are not preserved from the stale reading.
 
 - [ ] After shaping, the user's original wording is present and unmodified in the thought field.
@@ -85,7 +85,7 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 
 - Each chip: a field label and an editable value.
 - **Known:** plain chip, no icon.
-- **Inferred:** same chip style, tiny sparkle, dotted underline, hover reveals *"Inferred from your thought"*.
+- **Inferred:** same chip style, tiny sparkle, dotted underline, hover reveals _"Inferred from your thought"_.
 - No loud color difference between known and inferred.
 - Clicking turns the value into an inline editable field. Manually editing an inferred value marks it **known**.
 
@@ -95,7 +95,7 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 ### Follow-up questions (the Gap Rule)
 
 - At most one question visible at a time, directly beneath the chips — inline, no modal, no chat, no separate page.
-- Header line: *"One thing I need to know"*; a `Continue` action submits the answer.
+- Header line: _"One thing I need to know"_; a `Continue` action submits the answer.
 - After each answer: incorporate it, update the interpretation, re-evaluate remaining gaps, then either ask the next question or reveal `Build prompt`.
 - **Hard ceiling: 3 questions per dock.** After the third, unresolved gaps become visible inferred assumptions and the flow continues.
 - `Build prompt` is **not rendered** while a question is pending — never shown disabled with unclear reasoning.
@@ -109,21 +109,21 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 
 - Rendered only when no high-impact question is pending; it is the strongest visual action in that state.
 - All chips remain editable before pressing it.
-- On press: reads *Building…*, keeps the interpretation visible with editing visually paused, blocks duplicate generation.
+- On press: reads _Building…_, keeps the interpretation visible with editing visually paused, blocks duplicate generation.
 
 - [ ] At most one generation request is in flight at a time.
 
 ### Prompt editor and interpretation sync
 
-- The prompt appears in a new *"Your prompt"* section — a tall multiline editor that reads as the final artifact, not a small form field.
+- The prompt appears in a new _"Your prompt"_ section — a tall multiline editor that reads as the final artifact, not a small form field.
 - Directly editable. Actions are minimal: **Copy**, plus **Update prompt** only when the prompt has been hand-edited and the understanding has since changed. There is no generic `Rebuild prompt` action in the POC.
-- **Copy** copies the current editor contents and briefly reads *Copied*. No toast pile, no modal. Copy has no persistence responsibility.
-- **Sync rule — the single internal distinction is *generated prompt untouched* vs *manually edited prompt*:**
-  - *Untouched:* editing a chip **auto-regenerates** the prompt; the changed portion visibly updates and a brief *"Updated"* marker appears.
-  - *Manually edited:* chip edits **never** silently overwrite. The prompt is marked out of sync with *"Understanding changed."* plus an `Update prompt` action that regenerates from the current interpretation.
+- **Copy** copies the current editor contents and briefly reads _Copied_. No toast pile, no modal. Copy has no persistence responsibility.
+- **Sync rule — the single internal distinction is _generated prompt untouched_ vs _manually edited prompt_:**
+  - _Untouched:_ editing a chip **auto-regenerates** the prompt; the changed portion visibly updates and a brief _"Updated"_ marker appears.
+  - _Manually edited:_ chip edits **never** silently overwrite. The prompt is marked out of sync with _"Understanding changed."_ plus an `Update prompt` action that regenerates from the current interpretation.
 
-- [ ] With the prompt untouched: changing a chip updates the prompt with no `Build prompt` press, and an *"Updated"* cue is briefly visible.
-- [ ] After hand-editing the prompt: changing a chip leaves the hand-edited text byte-for-byte intact and shows *"Understanding changed."* with `Update prompt`.
+- [ ] With the prompt untouched: changing a chip updates the prompt with no `Build prompt` press, and an _"Updated"_ cue is briefly visible.
+- [ ] After hand-editing the prompt: changing a chip leaves the hand-edited text byte-for-byte intact and shows _"Understanding changed."_ with `Update prompt`.
 - [ ] `Copy` returns exactly what is currently in the editor.
 
 ### Recent docks
@@ -142,38 +142,38 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 
 ### Loading and processing states
 
-- `Shape this` → *Shaping…*: thought visible, repeat submission blocked.
-- `Build prompt` → *Building…*: interpretation visible and editing visually paused, repeat generation blocked.
+- `Shape this` → _Shaping…_: thought visible, repeat submission blocked.
+- `Build prompt` → _Building…_: interpretation visible and editing visually paused, repeat generation blocked.
 
 ## States and Boundaries
 
 - **First use (no docks)** — the page is the input. Recent docks renders nothing.
 - **Empty input** — `Shape this` disabled; no message.
-- **Generation fails (first attempt)** — interpretation stays visible; inline *"Couldn't build the prompt."* with `Try again` and quiet *"Your work is still here."* No modal, no navigation, no dock written.
-- **Regeneration fails (prompt already exists)** — the last good prompt stays intact and usable; inline *"Couldn't update the prompt."* with `Try again`. An error never replaces a working prompt.
-- **Processing** — buttons relabel (*Shaping…* / *Building…*), duplicate actions blocked, nothing the user wrote disappears.
+- **Generation fails (first attempt)** — interpretation stays visible; inline _"Couldn't build the prompt."_ with `Try again` and quiet _"Your work is still here."_ No modal, no navigation, no dock written.
+- **Regeneration fails (prompt already exists)** — the last good prompt stays intact and usable; inline _"Couldn't update the prompt."_ with `Try again`. An error never replaces a working prompt.
+- **Processing** — buttons relabel (_Shaping…_ / _Building…_), duplicate actions blocked, nothing the user wrote disappears.
 - **Persistence** — docks persist between sessions in browser local storage only, on this device, in this browser. Clearing site data removes them; there is no recovery, no sync, no export. Ten text-only docks are far below any quota that matters. **If a local-storage write fails, the session continues normally** — everything stays on screen, nothing is lost, the dock simply isn't persisted for next time.
 - **Who sees what** — single user, single device, no accounts and no sharing. Nothing leaves the browser except the request that shapes and builds the prompt.
 - **Locked product rules** — gaps never render as "missing"; 3-question ceiling; save on successful generation only.
 
-**Guiding principle (the learner's):** *AI failure should cost the user time, never their work.*
+**Guiding principle (the learner's):** _AI failure should cost the user time, never their work._
 
 ## Product Decisions
 
-- **Save on successful generation, not on Copy** — *"Copy only copies. It should not control whether work is saved."*
-- **Sync breaks at manual prompt edit** — *"Once someone manually fixes the final prompt, changing a chip cannot unexpectedly erase their work."*
-- **`Shape this` = 3-character trim guard, no semantic check** — an AI judgment of "meaningful input" would contradict *"Messy is fine."*
-- **`Build prompt` withheld rather than disabled while a question is pending** — *"prefer not rendering it yet rather than showing a disabled button with unclear reasoning."*
+- **Save on successful generation, not on Copy** — _"Copy only copies. It should not control whether work is saved."_
+- **Sync breaks at manual prompt edit** — _"Once someone manually fixes the final prompt, changing a chip cannot unexpectedly erase their work."_
+- **`Shape this` = 3-character trim guard, no semantic check** — an AI judgment of "meaningful input" would contradict _"Messy is fine."_
+- **`Build prompt` withheld rather than disabled while a question is pending** — _"prefer not rendering it yet rather than showing a disabled button with unclear reasoning."_
 - **No example cards** — examples live only as placeholder copy inside the input, so the first screen has one action.
 - **Two separate actions** — `Shape this` interprets; `Build prompt` compiles. Confirmed explicitly.
-- **Single-page growth instead of steps** — *"the page grows downward as understanding increases"*; explicitly no wizard, progress bar, or review page.
+- **Single-page growth instead of steps** — _"the page grows downward as understanding increases"_; explicitly no wizard, progress bar, or review page.
 - **Chips are a flexible set, not a schema** — only relevant fields render, so two different thoughts look different.
 - **Theme toggle ships, light-first** — light is the reference design; dark must keep the same character rather than a neutral inversion.
-- **Palette inherits Prompt Dock's ivory-green character, code written from scratch** — calm muted green is the sole accent; *"the sparkle is functional, not branding."*
+- **Palette inherits Prompt Dock's ivory-green character, code written from scratch** — calm muted green is the sole accent; _"the sparkle is functional, not branding."_
 - **Manrope** as the primary typeface.
-- **`Rebuild prompt` cut** — *"It introduces a second concept without a strong reason."* The two existing paths already cover every case.
+- **`Rebuild prompt` cut** — _"It introduces a second concept without a strong reason."_ The two existing paths already cover every case.
 - **Title fallback locked** — Goal, else ~6 meaningful words of the thought, else `Untitled dock`.
-- **Storage failure is graceful, not an error state** — *"preserve the current session and simply don't persist it."*
+- **Storage failure is graceful, not an error state** — _"preserve the current session and simply don't persist it."_
 - **AI inference is a product dependency, not an implementation detail** — `Shape this` and `Build prompt` both call a model; credentials must stay server-side, so the app is one Next.js deployment with no separate backend service.
 
 **Constraints carried forward to `4-spec`** (not open questions — binding): Next.js App Router + TypeScript; one deployable Next.js app with no separate backend service; AI inference only through server-side routes; provider credentials never reach the browser; and the implementation must stay compatible with a **genuinely free / free-tier model option** for the hackathon. Provider choice, exact env var names, route implementation, request/response shapes, and model configuration are all `4-spec` decisions.
@@ -196,7 +196,7 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 ## Deferred From the POC
 
 - **Accounts, sync, sharing** — "my saved items" implies auth and a backend; one browser's local storage proves continuity without them.
-- **Running the prompt against a provider** — *"Run prompt" is a 1.0 feature*, and it drags in keys, models, and cost.
+- **Running the prompt against a provider** — _"Run prompt" is a 1.0 feature_, and it drags in keys, models, and cost.
 - **Model/provider selection and BYOK** — unnecessary while there is no execution.
 - **Multi-agent pipeline / agent execution view** — a beautiful risk; the Mini is the restraint.
 - **Template gallery, onboarding tour, marketing copy** — the app opens on the input.
@@ -213,15 +213,15 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 
 ## Non-Goals
 
-- No accounts, auth, or sync — *no infrastructure to maintain for a demo*.
-- No executing the prompt — *scope.md > Explicitly Cut*.
-- No wizard, progress bar, numbered steps, Back/Next, or sidebars — *the page grows downward instead*.
-- No purple/blue AI gradients, glow, glassmorphism, neon, or floating sparkles — *generic AI-app styling is exactly what this avoids*.
-- No success screen, score, or completion step — *the prompt is the proof*.
-- No AI-based validation of the user's input — *"Messy is fine."*
-- No silent overwrite of a hand-edited prompt — *AI failure and user work must not collide*.
-- No generic `Rebuild prompt` action — *the untouched path regenerates itself and the edited path has `Update prompt`; a third verb would need alternate generations first*.
-- No client-side provider key — *inference goes through server-side routes so the key never ships to the browser*.
+- No accounts, auth, or sync — _no infrastructure to maintain for a demo_.
+- No executing the prompt — _scope.md > Explicitly Cut_.
+- No wizard, progress bar, numbered steps, Back/Next, or sidebars — _the page grows downward instead_.
+- No purple/blue AI gradients, glow, glassmorphism, neon, or floating sparkles — _generic AI-app styling is exactly what this avoids_.
+- No success screen, score, or completion step — _the prompt is the proof_.
+- No AI-based validation of the user's input — _"Messy is fine."_
+- No silent overwrite of a hand-edited prompt — _AI failure and user work must not collide_.
+- No generic `Rebuild prompt` action — _the untouched path regenerates itself and the edited path has `Update prompt`; a third verb would need alternate generations first_.
+- No client-side provider key — _inference goes through server-side routes so the key never ships to the browser_.
 
 ## Open Questions
 

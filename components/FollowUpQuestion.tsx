@@ -26,7 +26,9 @@ export function FollowUpQuestion({
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-line bg-panel px-4 py-4">
-      <h2 className="text-sm font-semibold text-fg">One thing I need to know</h2>
+      <h2 className="text-sm font-semibold text-fg">
+        One thing I need to know
+      </h2>
       <p className="text-sm text-fg">{question}</p>
       <textarea
         value={answer}
@@ -37,7 +39,8 @@ export function FollowUpQuestion({
       />
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs text-muted">
-          Question {questionCount + 1} of at most 3 · interpretation stays visible
+          Question {questionCount + 1} of at most 3 · interpretation stays
+          visible
         </span>
         <button
           type="button"

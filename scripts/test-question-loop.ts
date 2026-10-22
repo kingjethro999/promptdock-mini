@@ -27,7 +27,10 @@ function parseRouteShape(text: string): ShapeResponse | null {
     fail(`route response missing structure — raw: ${text.slice(0, 300)}`);
     return null;
   }
-  if (value.needsFollowUp && (typeof value.question !== "string" || value.question.trim() === "")) {
+  if (
+    value.needsFollowUp &&
+    (typeof value.question !== "string" || value.question.trim() === "")
+  ) {
     fail("route returned needsFollowUp without a question");
   }
   if (!value.needsFollowUp && value.question) {
@@ -101,8 +104,10 @@ async function main(): Promise<void> {
   }
 
   console.log(`requests=${requests} questions asked=${asked}`);
-  if (asked > MAX_QUESTIONS) fail(`asked ${asked} questions (ceiling ${MAX_QUESTIONS})`);
-  if (requests > MAX_QUESTIONS + 1) fail(`made ${requests} requests (max ${MAX_QUESTIONS + 1})`);
+  if (asked > MAX_QUESTIONS)
+    fail(`asked ${asked} questions (ceiling ${MAX_QUESTIONS})`);
+  if (requests > MAX_QUESTIONS + 1)
+    fail(`made ${requests} requests (max ${MAX_QUESTIONS + 1})`);
   if (answers.length > 0 && asked > 0) {
     fail("stopped with answers un-incorporated while still asking");
   }
@@ -115,7 +120,8 @@ async function main(): Promise<void> {
     questionCount: MAX_QUESTIONS,
     lastQuestion: null,
   });
-  if (ceiling?.asks) fail("ceiling probe: server asked a question at questionCount=3");
+  if (ceiling?.asks)
+    fail("ceiling probe: server asked a question at questionCount=3");
 
   if (failures > 0) {
     console.error(`${failures} failure(s)`);

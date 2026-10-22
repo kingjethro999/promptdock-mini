@@ -14,7 +14,9 @@ export interface ProviderAttempt {
 
 export class AiUnavailableError extends Error {
   constructor(public attempts: ProviderAttempt[]) {
-    super(`All providers failed: ${attempts.map((a) => `${a.provider} (${a.reason})`).join("; ")}`);
+    super(
+      `All providers failed: ${attempts.map((a) => `${a.provider} (${a.reason})`).join("; ")}`,
+    );
     this.name = "AiUnavailableError";
   }
 }
@@ -27,9 +29,18 @@ interface ProviderConfig {
 }
 
 const DEFAULTS: Record<ProviderName, { baseUrl: string; model: string }> = {
-  apmix: { baseUrl: "https://api.apmix.ai/v1", model: "deepseek-v4-flash-free" },
-  groq: { baseUrl: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b" },
-  gemini: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash" },
+  apmix: {
+    baseUrl: "https://api.apmix.ai/v1",
+    model: "deepseek-v4-flash-free",
+  },
+  groq: {
+    baseUrl: "https://api.groq.com/openai/v1",
+    model: "openai/gpt-oss-120b",
+  },
+  gemini: {
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    model: "gemini-2.5-flash",
+  },
 };
 
 const KEYS: Record<ProviderName, string> = {
@@ -52,7 +63,9 @@ export function providerOrder(): ProviderName[] {
     .filter((s): s is ProviderName => (known as string[]).includes(s));
   const ordered = requested.length > 0 ? requested : known;
   const maxFallbacks = Number(env("AI_MAX_FALLBACKS", "2"));
-  const limit = Number.isFinite(maxFallbacks) ? Math.max(0, maxFallbacks) + 1 : 3;
+  const limit = Number.isFinite(maxFallbacks)
+    ? Math.max(0, maxFallbacks) + 1
+    : 3;
   return ordered.slice(0, limit);
 }
 
@@ -63,9 +76,12 @@ function configFor(name: ProviderName): ProviderConfig | null {
     name === "apmix"
       ? env("APMIX_BASE_URL", DEFAULTS.apmix.baseUrl).replace(/\/$/, "")
       : DEFAULTS[name].baseUrl;
-  const model = name === "apmix" ? env("APMIX_MODEL", DEFAULTS.apmix.model)
-    : name === "groq" ? env("GROQ_MODEL", DEFAULTS.groq.model)
-    : env("GEMINI_MODEL", DEFAULTS.gemini.model);
+  const model =
+    name === "apmix"
+      ? env("APMIX_MODEL", DEFAULTS.apmix.model)
+      : name === "groq"
+        ? env("GROQ_MODEL", DEFAULTS.groq.model)
+        : env("GEMINI_MODEL", DEFAULTS.gemini.model);
   return { name, baseUrl, apiKey, model };
 }
 
@@ -99,7 +115,10 @@ async function postChat(
     });
     if (!response.ok) {
       const detail = (await response.text().catch(() => "")).slice(0, 200);
-      return { ok: false, reason: `HTTP ${response.status}${detail ? `: ${detail}` : ""}` };
+      return {
+        ok: false,
+        reason: `HTTP ${response.status}${detail ? `: ${detail}` : ""}`,
+      };
     }
     const data = (await response.json()) as {
       choices?: { message?: { content?: string | null } }[];
@@ -110,11 +129,12 @@ async function postChat(
     }
     return { ok: true, content };
   } catch (error) {
-    const reason = error instanceof Error && error.name === "AbortError"
-      ? `timeout after ${timeoutMs}ms`
-      : error instanceof Error
-        ? error.message
-        : String(error);
+    const reason =
+      error instanceof Error && error.name === "AbortError"
+        ? `timeout after ${timeoutMs}ms`
+        : error instanceof Error
+          ? error.message
+          : String(error);
     return { ok: false, reason };
   } finally {
     clearTimeout(timer);

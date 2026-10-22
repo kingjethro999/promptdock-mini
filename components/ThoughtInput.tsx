@@ -26,7 +26,12 @@ export function ThoughtInput({
   const ready = isUsableThought(value);
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && ready && !busy) {
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      event.key === "Enter" &&
+      ready &&
+      !busy
+    ) {
       event.preventDefault();
       onSubmit(value.trim());
     }
