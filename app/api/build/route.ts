@@ -1,6 +1,7 @@
 import { complete } from "../../../lib/ai";
 import { MIN_THOUGHT_CHARS } from "../../../lib/types";
 import { BUILD_SYSTEM_PROMPT, buildBuildUserMessage } from "../../../lib/prompts/build";
+import { guardPromptBody } from "../../../lib/validate-prompt";
 
 const MAX_THOUGHT_LENGTH = 6000;
 
@@ -62,7 +63,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json({ error: "ai_unavailable" }, { status: 502 });
   }
-  if (prompt.length === 0) {
+  if (!guardPromptBody(prompt).ok) {
     return Response.json({ error: "ai_unavailable" }, { status: 502 });
   }
   return Response.json({ prompt });
