@@ -8,6 +8,8 @@ status: approved
 A single-page tool that turns a messy, half-formed thought into a usable prompt by first showing its understanding in editable pieces, asking at most three questions when a wrong guess would matter, and compiling the result. Built for someone who wants a better prompt without learning to write one.
 Source: `scope.md > The Unique Kernel`, `scope.md > The Core Loop`.
 
+> **Update (22 Oct 2026):** the shipped app now includes the *Local-First UX & PWA Upgrade* — persistent refinement composer, versioned library on `/library`, PWA/offline library, save-status states. See the amendment at the end of this document; where it and the original text disagree, the amendment wins.
+
 ## The Core Journey
 
 1. The user opens the page. There is one large input, a heading — _"What are you trying to get done?"_ — and a quiet line under it: _"Messy is fine."_ Nothing else competes for attention. If they have docks before, they appear below; if not, the page shows nothing there.
@@ -26,17 +28,19 @@ There is no success screen, no score, no confetti. The proof is the prompt itsel
 
 ## Screens and Layout
 
-One screen, not several. The product is a single page that **grows downward as understanding increases** — there is no navigation, no wizard, no progress bar, no Back/Next, no sidebars, no separate review page.
+The product is a working screen that **grows downward as understanding increases** — no wizard, no progress bar, no Back/Next, no sidebars, no separate review page — plus one additional minimal route (`/library`) added in the October upgrade.
 
 Top to bottom:
 
-1. **Header** — `Prompt Dock Mini` wordmark left, theme toggle right. No nav links, account button, or help menu.
+1. **Header** — `Prompt Dock Mini` wordmark left; `Library` and `Coming soon` plus theme toggle right. No account button or help menu.
 2. **Thought** — heading, quiet supporting line, one large multiline input, `Shape this` attached to or inside it, and one subtle reassurance: _"No perfect prompt needed. Start with the rough idea."_ After shaping it compacts and is relabelled _"Your thought"_, still editable; resubmitting recomputes the interpretation rather than preserving stale chips.
 3. **What I understood** — quiet heading, then chips grouped into only the fields that apply (Goal, Audience, Context, Requirements, Output — illustrative, not a fixed schema).
 4. **Follow-up question** (conditional) — inline beneath the chips, never a modal or chat window.
 5. **`Build prompt`** (conditional) — rendered only when no high-impact question is pending.
-6. **Your prompt** (conditional) — tall editable editor, `Copy`, and `Update prompt` only when the prompt has been hand-edited and the understanding has since changed.
-7. **Recent docks** (conditional) — beneath everything, rendered only when docks exist.
+6. **`Refine prompt`** (conditional) — appears once a prompt exists; applies a change request to the current prompt and saves the result as a new version.
+7. **Your prompt** (conditional) — tall editable editor, `Copy`, and `Update prompt` only when the prompt has been hand-edited and the understanding has since changed.
+8. **Sticky bottom composer** — hosts `Shape this` / `Refine prompt` as explicit modes so generation stays reachable while the page grows.
+9. **Library** — on its own `/library` route: search, sort, All/Favorites filter, rename, confirmed delete; Share opens the honest "Coming soon" dialog.
 
 Source: `scope.md > The Core Loop`, `scope.md > The Unique Kernel`.
 
@@ -59,7 +63,7 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 
 ### First screen
 
-- Header: wordmark left, theme toggle right. Nothing else.
+- Header: wordmark left; `Library`, `Coming soon`, and theme toggle right.
 - Centered main content with a slight upper-center bias.
 - Heading: _"What are you trying to get done?"_
 - Supporting line: _"Messy is fine."_
@@ -126,19 +130,19 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 - [ ] After hand-editing the prompt: changing a chip leaves the hand-edited text byte-for-byte intact and shows _"Understanding changed."_ with `Update prompt`.
 - [ ] `Copy` returns exactly what is currently in the editor.
 
-### Recent docks
+### Prompt library (versioned, IndexedDB)
 
-- Local storage only. Latest **10**, newest first.
-- **Written only on successful generation.** Copy does not save. Regenerating an already-saved dock updates that dock rather than creating a second one.
-- Each dock stores: the thought, interpreted fields with provenance, follow-up answers, the prompt, and a timestamp.
-- Rows show an auto-generated title and relative time; clicking one **restores the editable state rather than forking a copy**; a quiet per-row delete.
-- **Title rule (locked):** use the Goal if one exists → otherwise the first ~6 meaningful words of the original thought → otherwise `Untitled dock`.
-- No rename, folders, tags, search, pinning, sync, or accounts.
+- Browser storage only, on IndexedDB. **No eviction cap**; the legacy localStorage docks migrate in once and stay untouched as a recovery backup.
+- **Written on successful generation and on refinement.** Copy does not save. A refinement appends a new immutable version to the same group rather than creating a second entry.
+- Each version stores: the body, its source (migration / ai-build / ai-refinement), a base version link, a favorite flag, and a timestamp; the group stores the title and the original thought.
+- The library lives on `/library`: search by title, sort (newest / oldest / A→Z), All / Favorites filter, rename, and a confirmed delete. Share opens the honest "Coming soon" dialog — never a fake link.
+- **Title rule (locked, carried forward):** use the Goal if one exists → otherwise the first ~6 meaningful words of the original thought → otherwise `Untitled prompt`.
+- No folders, tags, pinning, sync, or accounts.
 
-- [ ] With no docks, no Recent docks section renders at all — no empty state, no "You have no recent docks."
-- [ ] A dock appears in the list immediately after the first successful generation, and the same dock updates (no duplicate row) on regeneration.
-- [ ] Reopening a dock restores thought, chips, provenance, answers, and prompt as editable.
-- [ ] A dock titled from a Goalless thought shows the first ~6 meaningful words of the thought, and reads `Untitled dock` only when neither exists.
+- [ ] With no saved prompts, the library renders an empty state — no fake rows, no suggestions.
+- [ ] A prompt appears after the first successful generation; each refinement appends a new version (three refinements → four intact, copyable versions).
+- [ ] Reopening a prompt restores the latest version for editing; any earlier version can be restored by selection, never by overwrite.
+- [ ] Titles follow the locked fallback rule.
 
 ### Loading and processing states
 
@@ -147,13 +151,14 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 
 ## States and Boundaries
 
-- **First use (no docks)** — the page is the input. Recent docks renders nothing.
+- **First use (no saved prompts)** — the page is the input; the library shows only an empty state.
 - **Empty input** — `Shape this` disabled; no message.
-- **Generation fails (first attempt)** — interpretation stays visible; inline _"Couldn't build the prompt."_ with `Try again` and quiet _"Your work is still here."_ No modal, no navigation, no dock written.
+- **Generation fails (first attempt)** — interpretation stays visible; inline _"Couldn't build the prompt."_ with `Try again` and quiet _"Your work is still here."_ No modal, no navigation, no version written.
 - **Regeneration fails (prompt already exists)** — the last good prompt stays intact and usable; inline _"Couldn't update the prompt."_ with `Try again`. An error never replaces a working prompt.
 - **Processing** — buttons relabel (_Shaping…_ / _Building…_), duplicate actions blocked, nothing the user wrote disappears.
-- **Persistence** — docks persist between sessions in browser local storage only, on this device, in this browser. Clearing site data removes them; there is no recovery, no sync, no export. Ten text-only docks are far below any quota that matters. **If a local-storage write fails, the session continues normally** — everything stays on screen, nothing is lost, the dock simply isn't persisted for next time.
-- **Who sees what** — single user, single device, no accounts and no sharing. Nothing leaves the browser except the request that shapes and builds the prompt.
+- **Offline** — the library and every saved prompt remain available from the service-worker cache; AI generation is disabled with a clear indicator (_"Offline — your saved prompts are available. Generation needs a connection."_). Offline AI is never faked.
+- **Persistence** — the library persists between sessions in browser IndexedDB only, on this device, in this browser; drafts autosave debounced, committed versions save automatically (no Save button). Clearing site data removes them; there is no recovery, no sync, no export. **If a storage write fails, the session continues normally** — everything stays on screen, nothing is lost, the work simply isn't persisted for next time; a save-status line says so plainly.
+- **Who sees what** — single user, single device, no accounts and no sharing. Nothing leaves the browser except the request that shapes, builds, or refines the prompt.
 - **Locked product rules** — gaps never render as "missing"; 3-question ceiling; save on successful generation only.
 
 **Guiding principle (the learner's):** _AI failure should cost the user time, never their work._
@@ -189,9 +194,9 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 - `Build prompt` with processing state and inline failure recovery.
 - Tall editable prompt editor with `Copy`, plus `Update prompt` only for the out-of-sync case.
 - Chip→prompt sync with the untouched vs manually-edited distinction.
-- Recent docks: local storage, cap 10, save on generation, restore editable, auto-title, delete.
+- Prompt library: IndexedDB, versioned, no cap; save on generation and refinement, restore editable, auto-title, rename, favorites, confirmed delete on `/library`.
 - Inline error states for both first generation and regeneration.
-- Everything persists across a browser reload in local storage.
+- Everything persists across a browser reload in browser storage (IndexedDB), with debounced draft autosave and automatic version commits.
 
 ## Deferred From the POC
 
@@ -200,12 +205,13 @@ The overall feel is related to the main Prompt Dock's restrained ivory-green cha
 - **Model/provider selection and BYOK** — unnecessary while there is no execution.
 - **Multi-agent pipeline / agent execution view** — a beautiful risk; the Mini is the restraint.
 - **Template gallery, onboarding tour, marketing copy** — the app opens on the input.
-- **Library management** (rename, folders, tags, search, pinning) — ten rows with a delete button is the whole feature.
+- **Folders, tags, pinning in the library** — search, sort, rename, and favorites shipped in the October upgrade (see amendment); folders, tags, and pinning remain deferred.
+- **Voice capture and file attachments** — deferred P1s from the upgrade spec; not shipped untested.
 - **A visible "missing" chip** — three provenance states is a questionnaire with extra steps; two is a product.
 
 ## Possible Later Enhancements
 
-- Manual dock renaming and pinning, once ten rows isn't enough.
+- Pinned prompts and folders for larger libraries (rename, search, sort, favorites already ship — see amendment).
 - Export a dock as a file, or share by link.
 - Alternate generations for one thought (several candidate prompts), which would be the only reason a generic rebuild action might return.
 - Multiple dock slots per thought (variants) now that the sync rule exists.
@@ -230,3 +236,32 @@ _None. Three candidates were raised during review and all three are now settled:
 - ~~Storage quota~~ — **resolved:** not a product concern at ten text docks; a failed write fails gracefully without losing the session.
 - ~~Auto-title fallback~~ — **resolved:** Goal → first ~6 meaningful words of the thought → `Untitled dock`.
 - ~~`Rebuild prompt` vs `Update prompt`~~ — **resolved:** `Rebuild prompt` is **cut** from the POC. Untouched prompts regenerate automatically; hand-edited prompts get `Update prompt`. A generic rebuild would only earn its place alongside alternate generations, which are out of scope.
+
+---
+
+## Amendment — Local-First UX & PWA Upgrade (22 Oct 2026)
+
+Status: approved and implemented. Source spec: `PROMPTDOCK_MINI_ADDENDUM.md`. This amendment supersedes the specific requirements it names; everything else in this document stands.
+
+### New and Changed Requirements (shipped)
+
+1. **Persistent composer with explicit modes** — a sticky bottom composer hosts `Shape idea` and `Refine prompt` as separate, explicit modes; the current prompt is never hidden while refining. The workspace keeps the grow-downward model inside the working area.
+2. **Continuous refinement** — `Refine prompt` takes the current prompt plus a change request and produces one clean replacement prompt. **Three consecutive refinements produce four intact, copyable versions** (original + three). Refinement preserves prior constraints unless the change request contradicts them. Still not a chatbot: no chat transcript is stored; only prompt artifacts.
+3. **Versioned library on `/library`** — replaces Recent docks. IndexedDB groups with immutable versions; **no eviction cap**. Search, sort (newest / oldest / A→Z), All/Favorites filter, rename, and confirmed delete ship. Share opens the honest "Coming soon" dialog.
+4. **Data migration, non-destructive** — legacy `pmd.docks` localStorage records migrate once into the library and remain untouched as a recovery backup. **No user data is deleted.**
+5. **PWA** — web manifest, icons, and a service worker cache the shell, `/library`, and saved prompts. **Offline, the library and saved prompts remain fully available**; AI generation is guarded with a clear offline indicator and is never faked.
+6. **Save behavior preserved** — no Save button after generation; versions commit automatically. Drafts autosave debounced and are distinct from committed versions. A save-status line shows _Saving… / Saved locally / Couldn't save_ honestly.
+7. **Async safety** — operation IDs discard stale responses, so a slow shape/build/refine response can never overwrite newer edits.
+8. **Manual-edit protection carried forward** — `Understanding changed.` + `Update prompt` still guards hand-edited prompts; a refinement never silently discards manual edits to the current version body.
+
+### Deferred From the Upgrade (P1, not shipped untested)
+
+- Voice capture of a thought.
+- Attachments / images / files.
+- JSON export/import.
+
+### Acceptance Evidence
+
+- `npx tsx scripts/prompt-store-smoke.ts` → **22 assertions pass**: 10 legacy docks migrate intact with `pmd.docks` retained as backup; rerun is a no-op; 25 groups survive (no cap-10 eviction); three refinements yield four sequential intact versions; favorites toggle; scoped delete leaves other groups untouched.
+- Lint, typecheck, and production build pass.
+- Live smoke on the dev server: `/`, `/library`, `/manifest.webmanifest` all 200; real `shape → build → refine` round-trips return prompt-only output; refinement honored change requests (e.g. _"shorten to under 100 words, add a move-in date"_) while preserving prior constraints; no conversational wrappers leaked through the prompt-only guard.

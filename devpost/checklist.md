@@ -108,3 +108,31 @@ Reflection: declined by learner at final sign-off (app map + recap sufficient; n
 Activity mode: explicit static fallback (self-contained HTML) referencing the live app at localhost:3001.
 
 ## Revisions
+
+## UX Upgrade Slices (October 2026 — Local-First UX & PWA)
+
+Source spec: `PROMPTDOCK_MINI_ADDENDUM.md` (22 Oct 2026). Supersedes the slice-7 storage decisions where noted; the planning docs' amendment sections carry the requirement delta.
+
+- [x] **U1. Versioned prompt library, sticky composer, refinement endpoint** ✅ verified
+      Becomes usable: a persistent bottom composer (explicit Shape idea / Refine prompt modes) keeps generation reachable while the page grows; successful builds and refinements land as immutable versions in a browser IndexedDB library; `/library` offers search, sort, All/Favorites filter, rename, and confirmed delete; three refinements produce four intact, copyable versions; the legacy `pmd.docks` data migrates once and stays untouched as a recovery backup.
+      PRD ref: `prd.md > Amendment — Local-First UX & PWA Upgrade` (requirements 1–4, 7–8)
+      Spec ref: `spec.md > Amendment` (prompt-store data model, `/api/refine` contract, `/library`, composer components)
+      Build: `lib/prompt-store.ts` (groups + immutable versions, one-time migration flagged `pmd.migrated.v1`); `lib/prompts/refine.ts` + `app/api/refine/route.ts`; `lib/validate-prompt.ts` prompt-only guard on build + refine; `lib/online-status.ts` (`useSyncExternalStore`); rewritten `app/page.tsx` + new `app/library/page.tsx`; `Composer`/`ExpandedComposer`/`PromptArtifact`/`VersionPicker`/`LibraryCard`/`ComingSoonDialog`/`OfflineIndicator`; `components/RecentDocks.tsx` deleted (dead code).
+      Verify (mechanical): live dev server (port 3001) — `/`, `/library` 200; `/api/shape` returned 4 clean interpretation fields with no follow-up; `/api/build` returned prompt-only output; `/api/refine` honored both change requests (_"shorten to under 100 words, add a move-in date"_) while preserving prior constraints; dev log clean of errors; `npx tsc --noEmit` + eslint clean.
+      Commit: `Rework workspace: versioned prompt library, sticky composer, refinement endpoint` (`04acbed`, 19 files)
+
+- [x] **U2. PWA: manifest, icons, service worker** ✅ verified
+      Becomes usable: the app installs like a local tool; offline, the shell, `/library`, and every saved prompt remain available; AI generation is guarded with a clear offline indicator and is never faked.
+      PRD ref: `prd.md > Amendment` (requirement 5), `prd.md > States and Boundaries` (offline)
+      Spec ref: `spec.md > Amendment` (Online status & PWA)
+      Build: `app/manifest.ts` + `public/icons/*` (generated via `scripts/generate-icons.py`, PIL) + `public/sw.js` (cache version `pmd-v1`; shell and `/library` precached; `/api/*` network-only so no AI response is ever cached); SW registers in production builds only (`ServiceWorkerRegister`).
+      Verify (mechanical): `/manifest.webmanifest` returns 200 on the live dev server; SW file inspected — AI routes explicitly network-only.
+      Commit: `Add PWA: manifest, icons, service worker with network-only AI routes` (`19a7c86`)
+
+- [x] **U3. Headless acceptance test for the prompt store** ✅ verified — 22/22
+      Becomes usable: the addendum's acceptance criteria are executable, not aspirational.
+      PRD ref: `prd.md > Amendment` (Acceptance Evidence)
+      Spec ref: `spec.md > Amendment` (Upgrade build slices)
+      Build: `scripts/prompt-store-smoke.ts` + `fake-indexeddb` devDep; `window`/`localStorage` shims applied before store calls (the store reads `window.*` at call time).
+      Verify (mechanical): `npx tsx scripts/prompt-store-smoke.ts` → **22 assertions pass** — 10 legacy docks migrate intact (titles/bodies/timestamps preserved, `pmd.docks` retained as backup, `pmd.theme` untouched), rerun is a no-op with no duplicates, 25 groups survive (no cap-10 eviction), three refinements yield four sequential intact versions with the group pointing at the latest, favorites toggle on/off and appear in the favorites query, scoped delete removes the group + versions and leaves the other 25 groups untouched. One test-arithmetic bug fixed en route (expected post-delete group count 24 → 25; 10 migrated + 15 new + 1 target − 1 = 25).
+      Commit: `Add headless acceptance test for the IndexedDB prompt store` (`9d44225`)

@@ -1824,6 +1824,120 @@
         </div>
       </details>
 
+      <h2 id="amendment">
+        Amendment — Local-First UX &amp; PWA Upgrade
+        <span
+          style="
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+            padding: 2px 8px;
+            vertical-align: middle;
+          "
+          >22 Oct 2026</span
+        >
+      </h2>
+      <p>
+        Approved and implemented (commits <code>04acbed</code>,
+        <code>19a7c86</code>, <code>9d44225</code>). Source spec:
+        <code>PROMPTDOCK_MINI_ADDENDUM.md</code>. This amendment supersedes the
+        specific locked decisions it names; everything else in this document
+        stands.
+      </p>
+      <p><strong>What changed</strong></p>
+      <ul style="max-width: 70ch">
+        <li>
+          <b>Workspace redesigned around a persistent composer</b> — a sticky
+          bottom composer with explicit modes (Shape idea / Refine prompt),
+          compact progressive panels above it, a full-screen expanded editor,
+          and Library + Coming Soon in the header.
+        </li>
+        <li>
+          <b>Versioned library replaces “Recent docks”</b> — a new
+          <code style="font-family: var(--mono); font-size: 14px"
+            >/library</code
+          >
+          route backed by IndexedDB (prompt groups holding immutable versions).
+          The cap of 10 and the localStorage-only list no longer apply. Search,
+          sort, All/Favorites filter, rename, and confirmed delete ship;
+          <strong>Share stays honest — “Coming soon”, not a fake link.</strong>
+        </li>
+        <li>
+          <b>Continuous refinement</b> — a new
+          <code style="font-family: var(--mono); font-size: 14px"
+            >/api/refine</code
+          >
+          takes the current prompt plus a change request and returns one clean
+          replacement prompt, saved as a new version. Three refinements produce
+          four intact, copyable versions. Not a chatbot: no transcript is
+          stored, only prompt artifacts.
+        </li>
+        <li>
+          <b>PWA</b> — web manifest, icons, and a service worker. Offline, the
+          library and every saved prompt remain available; AI generation is
+          guarded with a clear indicator, never faked.
+        </li>
+        <li>
+          <b>Data safety</b> — the old
+          <code style="font-family: var(--mono); font-size: 14px"
+            >pmd.docks</code
+          >
+          localStorage data migrates once into the new library and
+          <strong>is kept untouched as a recovery backup</strong>; nothing the
+          user already saved is ever deleted.
+        </li>
+      </ul>
+      <p><strong>Superseded locked decisions</strong></p>
+      <ul style="max-width: 70ch">
+        <li>
+          <del>Recent docks, latest 10, stored in localStorage</del> →
+          versioned IndexedDB library, no eviction cap.
+        </li>
+        <li>
+          <del>No renaming, folders, tags, search</del> → rename, search, sort,
+          and favorites now ship; folders/tags/pinning stay out.
+        </li>
+        <li>
+          <del>One screen, three states</del> → workspace plus one additional
+          minimal route (<code style="font-family: var(--mono); font-size: 14px"
+            >/library</code
+          >).
+        </li>
+        <li>
+          <del>Prompt version history — Later</del> → shipped (immutable
+          versions, restore by selection).
+        </li>
+        <li>
+          <del>No navigation</del> → header navigation with Library; the
+          workspace itself still grows downward only.
+        </li>
+      </ul>
+      <p>
+        <strong>Unchanged:</strong> the unique kernel, the gap rule, and every
+        non-negotiable — no accounts, no sync, no chatbot conversion, no
+        fabricated offline AI, no Save button after generation, legacy data
+        never deleted, provider keys server-side only.
+      </p>
+      <p>
+        <strong>Evidence:</strong>
+        <code style="font-family: var(--mono); font-size: 14px"
+          >npx tsx scripts/prompt-store-smoke.ts</code
+        >
+        → 22 assertions pass (migration idempotent with the original kept as
+        backup; 25 groups survive — no cap-10 eviction; three refinements yield
+        four sequential intact versions; favorites toggle; scoped delete).
+        Lint, typecheck, and production build pass; live smoke on the dev
+        server: <code style="font-family: var(--mono); font-size: 14px">/</code
+        >, <code style="font-family: var(--mono); font-size: 14px">/library</code
+        >, <code style="font-family: var(--mono); font-size: 14px"
+          >/manifest.webmanifest</code
+        >
+        all 200, and real shape → build → refine round-trips return prompt-only
+        output.
+      </p>
       <footer>
         Canonical document: <code>devpost/scope.md</code> · status: approved<br />
         This page is a companion for review only. If the two disagree, the

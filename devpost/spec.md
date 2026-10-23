@@ -5,6 +5,8 @@ status: approved
 
 # Prompt Dock Mini — Technical Spec
 
+> **Update (22 Oct 2026):** the shipped app now includes the *Local-First UX & PWA Upgrade* — IndexedDB versioned library, `/library` route, `/api/refine` endpoint, PWA manifest + service worker. The amendment at the end carries the updated file structure, data model, and endpoint contract; where it and the original text disagree (localStorage docks, cap 10, `RecentDocks`, Next.js v15), the amendment wins.
+
 ## How This Works, In Plain Language
 
 Prompt Dock Mini is one web page with a very small brain attached.
@@ -17,11 +19,11 @@ When it's finished understanding, you press **Build prompt**. The second AI call
 
 Two things are stored and one thing isn't:
 
-- **The dock** (thought, understanding, answers, prompt) is saved in your browser's local storage the moment a prompt is successfully built — ten of them, newest first. Not on your laptop's hard drive, not on a server. Same browser, same device.
+- **Your prompts** — each successful build or refinement lands as a new immutable version in a small versioned library kept in your browser's **IndexedDB** (the old localStorage docks migrate in once and stay as a backup). Not on your laptop's hard drive, not on a server. Same browser, same device.
 - **Your theme choice** — light or dark — is saved the same way.
 - **Your API key never goes anywhere near your browser.** The page talks to _your own_ Next.js server, and the server talks to the AI provider. The key lives in one environment variable on the server, and Vercel never exposes it.
 
-**Why this shape and not something bigger?** One page, two AI calls, one storage slot. Every extra service — a database, accounts, a queue — would be a thing that can break in front of a reviewer, and none of them would prove the idea. The idea is _a messy thought becomes a good prompt_. That's it.
+**Why this shape and not something bigger?** One page, a couple of AI calls, one storage slot. Every extra service — a database, accounts, a queue — would be a thing that can break in front of a reviewer, and none of them would prove the idea. The idea is _a messy thought becomes a good prompt_. That's it.
 
 ## The Core Journey Through the System
 
@@ -57,12 +59,12 @@ Implements `prd.md > The Core Journey`.
 
 | Choice                     | Version / detail                              | Why                                                                                                                                                                         |
 | -------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Next.js (App Router)**   | v15.x, `create-next-app` default              | Your constraint from the PRD: one deployable app, no separate backend. App Router gives route handlers at `app/api/*/route.ts` for free.                                    |
+| **Next.js (App Router)**   | v16.x (installed 16.3.8), `create-next-app` default           | Your constraint from the PRD: one deployable app, no separate backend. App Router gives route handlers at `app/api/*/route.ts` for free.                                    |
 | **TypeScript**             | strict mode                                   | Your constraint. Catches contract drift in the JSON the model returns — the exact failure this app is prone to.                                                             |
-| **React**                  | bundled with Next 15                          | The page is one surface with several conditional blocks.                                                                                                                    |
+| **React**                  | 19, bundled with Next 16                       | The page is one surface with several conditional blocks.                                                                                                                    |
 | **Tailwind CSS**           | v4                                            | _"tailwind nextjs default"_ — your pick. Pairs with `create-next-app`'s `--tailwind` flag; no config file needed in v4.                                                     |
 | **AI calls**               | raw `fetch` to `POST {base}/chat/completions` | All three providers are OpenAI-compatible, so **one** request shape covers apmix, groq, and gemini's OpenAI endpoint. No SDK → fewer dependencies, fewer version surprises. |
-| **No DB, no ORM, no auth** | —                                             | Local storage only, per `prd.md > Recent docks`.                                                                                                                            |
+| **No DB, no ORM, no auth** | —                                             | Browser IndexedDB only, per `prd.md > Prompt library`.                                                                                                                      |
 | **Vercel**                 | optional deploy                               | Your choice; env vars set in the dashboard, `.env` stays gitignored.                                                                                                        |
 
 **Docs:** [Next.js App Router](https://nextjs.org/docs/app) · [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers) · [Next.js + TypeScript](https://nextjs.org/docs/app/building-your-application/typescript) · [Tailwind CSS v4](https://tailwindcss.com/docs) · [Vercel env vars](https://vercel.com/docs/environment-variables)
@@ -327,3 +329,86 @@ The three places this realistically breaks in front of a reviewer:
 8. `BuildPrompt` + `PromptEditor` + the `promptEditedManually` sync rule, persisted and restored with the dock.
 9. `RecentDocks` + post-hydration client load + auto-title rule + click-to-restore (no auto-resume on reload).
 10. Failure states, dark mode pass, and the full demo path end to end.
+
+---
+
+## Amendment — Local-First UX & PWA Upgrade (22 Oct 2026)
+
+Status: approved and implemented (commits `04acbed`, `19a7c86`, `9d44225`). Source spec: `PROMPTDOCK_MINI_ADDENDUM.md`. Supersedes the storage layer, the `RecentDocks` component, the file structure, and the "one page, two AI calls" shape; everything else in this document stands.
+
+### Architecture Delta
+
+**Persistence: IndexedDB versioned library** (`lib/prompt-store.ts`) replaces the localStorage dock list.
+
+- `PromptGroup` — `{ id, title, originalThought, createdAt, updatedAt, latestVersionId }`
+- `PromptVersion` — `{ id, groupId, versionNumber, body, source: "migration" | "ai-build" | "ai-refinement", baseVersionId, isFavorite, createdAt }`
+- **Immutable versions:** a build or refinement never overwrites a version; it appends the next one. Restore = select an earlier version (its body becomes the working copy on explicit restore), never a destructive rewrite.
+- **One-time migration:** legacy `pmd.docks` records are read, converted to groups + v1 versions, and flagged with `pmd.migrated.v1`. The original `pmd.docks` entry is **never removed** — it stays as a recovery backup. Migration is idempotent (rerun is a no-op).
+- **No eviction cap.** The old `MAX_DOCKS = 10` does not apply to the library.
+- `lib/dock-storage.ts` now only manages `pmd.theme` (and remains for legacy references); the dock read/write paths moved to `lib/prompt-store.ts`.
+
+**New endpoint: `/api/refine`.** Accepts `{ goal, prompt, interpretation, changeRequest }`. Returns `{ prompt: string }` — one clean replacement prompt with no conversational wrapper. Same provider chain and validation as `/api/build`; both routes run a prompt-only guard (`lib/validate-prompt.ts`) that rejects obvious conversational wrappers and never silently strips text.
+
+**New route: `/library`.** Client-side search, sort (newest / oldest / A→Z), All / Favorites filter, rename, confirmed delete, and Share → the honest "Coming soon" dialog (`components/ComingSoonDialog.tsx`).
+
+**Workspace composer.** `components/Composer.tsx` is a sticky bottom bar with explicit modes (Shape idea / Refine prompt); `components/ExpandedComposer.tsx` is the full-screen editor. `components/PromptArtifact.tsx` holds the prompt, Copy/Copied, the version picker (`components/VersionPicker.tsx`), and the carried-forward _Understanding changed_ + `Update prompt` protection. `components/VersionPicker.tsx` restores any prior version. Drafts autosave debounced; committed versions save automatically; a save-status line in the workspace shows _Saving… / Saved locally / Couldn't save_. Operation IDs discard stale async responses.
+
+**Online status & PWA.** `lib/online-status.ts` (`useSyncExternalStore`) drives `components/OfflineIndicator.tsx`: offline, the library and saved prompts stay available from the service worker; AI generation is disabled with a plain explanation, never faked. `app/manifest.ts` + `public/icons/*` (generated via `scripts/generate-icons.py`) + `public/sw.js` (cache version `pmd-v1`; shell and `/library` precached, `/api/*` network-only). The SW registers in production builds only.
+
+**Data safety non-negotiables honored:** no data deletion (legacy kept as backup), no Save button after generation (versions commit automatically), no fabricated offline AI, no chatbot conversion (refinement stores prompt artifacts only — no transcript), provider keys server-side only, manual-edit protection carried across versions.
+
+### Updated File Structure
+
+```
+promptdock-mini/
+├── app/
+│   ├── api/
+│   │   ├── shape/route.ts        # POST: thought → chips + ≤1 question
+│   │   ├── build/route.ts        # POST: thought + interpretation → prompt
+│   │   └── refine/route.ts       # POST: prompt + change request → replacement prompt
+│   ├── library/page.tsx          # versioned library: search/sort/favorites/rename/delete
+│   ├── manifest.ts               # PWA web manifest
+│   ├── globals.css
+│   ├── layout.tsx                # wraps AppShell
+│   ├── page.tsx                  # workspace: panels + sticky composer
+│   └── theme-boot.tsx
+├── components/
+│   ├── AppShell.tsx / AppHeader.tsx   # shell, Library + Coming soon nav, SW registration
+│   ├── Composer.tsx / ExpandedComposer.tsx
+│   ├── PromptArtifact.tsx / VersionPicker.tsx / SaveStatus.tsx
+│   ├── LibraryCard.tsx / ComingSoonDialog.tsx / OfflineIndicator.tsx
+│   ├── ThemeToggle.tsx / ThoughtInput.tsx / Interpretation.tsx
+│   ├── FollowUpQuestion.tsx / BuildPrompt.tsx / PromptEditor.tsx
+│   └── ServiceWorkerRegister.tsx
+├── lib/
+│   ├── ai.ts                     # provider chain: apmix → groq → gemini
+│   ├── prompt-store.ts           # IndexedDB versioned library + legacy migration
+│   ├── online-status.ts
+│   ├── validate-prompt.ts        # prompt-only guard for build + refine
+│   ├── prompts/
+│   │   ├── shape.ts              # shape system prompt
+│   │   ├── build.ts              # build system prompt
+│   │   └── refine.ts             # refinement system prompt
+│   ├── dock-storage.ts           # theme + legacy backup reference
+│   └── types.ts
+├── public/
+│   ├── sw.js                     # service worker, pmd-v1
+│   └── icons/                    # manifest icons (scripts/generate-icons.py)
+├── scripts/
+│   ├── prompt-store-smoke.ts     # 22-assertion acceptance test
+│   └── generate-icons.py
+├── devpost/  .env  .gitignore  next.config.ts  package.json  README.md
+```
+
+### New Failure Modes (handled)
+
+- **Offline generation attempt** → disabled with _"Offline — your saved prompts are available. Generation needs a connection."_ Nothing is queued or faked.
+- **Refine fails** → the current prompt stays intact and editable; inline _"Couldn't update the prompt."_ + `Try again`. An error never replaces a working prompt.
+- **Stale async response** → every shape/build/refine carries an operation ID; a response from a superseded operation is discarded, so a slow reply can never overwrite newer edits.
+- **Storage write fails** → caught; the session continues, the save-status line says _Couldn't save_ honestly (`prd.md > States and Boundaries`).
+
+### Upgrade Build Slices (evidence)
+
+1. `04acbed` — versioned prompt library, sticky composer, `/api/refine`, `/library`, migration with backup, offline guard wiring.
+2. `19a7c86` — PWA manifest, icons, service worker with network-only AI routes.
+3. `9d44225` — `scripts/prompt-store-smoke.ts` acceptance test (fake-indexeddb): **22 assertions pass** — migration idempotent with `pmd.docks` retained, 25 groups survive (no cap-10 eviction), three refinements → four sequential intact versions, favorites toggle, scoped delete.

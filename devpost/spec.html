@@ -1788,6 +1788,145 @@ npm run dev        <i># http://localhost:3000</i></pre>
         <b>That's the whole security shape of this app in one sentence.</b>
       </div>
 
+      <h2 id="amendment">
+        Amendment — Local-First UX &amp; PWA Upgrade
+        <span
+          style="
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+            padding: 2px 8px;
+            vertical-align: middle;
+          "
+          >22 Oct 2026</span
+        >
+      </h2>
+      <p>
+        Approved and implemented (commits <code>04acbed</code>,
+        <code>19a7c86</code>, <code>9d44225</code>). Source spec:
+        <code>PROMPTDOCK_MINI_ADDENDUM.md</code>. Supersedes the storage layer,
+        the <code>RecentDocks</code> component, the file structure, and the
+        “one page, two AI calls” shape; everything else stands. Stack is
+        <strong>Next.js 16.3.8 + React 19</strong> (this document’s v15 rows
+        predate the install).
+      </p>
+      <p><strong>Persistence — IndexedDB versioned library</strong>
+        (<code style="font-family: var(--mono); font-size: 14px"
+          >lib/prompt-store.ts</code
+        >) replaces the localStorage dock list:</p>
+      <ul style="max-width: 70ch">
+        <li>
+          <code style="font-family: var(--mono); font-size: 14px"
+            >PromptGroup</code
+          >
+          — <code style="font-family: var(--mono); font-size: 14px"
+            >{ id, title, originalThought, createdAt, updatedAt, latestVersionId }</code
+          >
+        </li>
+        <li>
+          <code style="font-family: var(--mono); font-size: 14px"
+            >PromptVersion</code
+          >
+          — <code style="font-family: var(--mono); font-size: 14px"
+            >{ id, groupId, versionNumber, body, source, baseVersionId, isFavorite, createdAt }</code
+          >
+          with <code style="font-family: var(--mono); font-size: 14px"
+            >source ∈ migration | ai-build | ai-refinement</code
+          >
+        </li>
+        <li>
+          <b>Immutable versions</b> — a build or refinement appends the next
+          version; restore selects an earlier one, never a destructive rewrite.
+        </li>
+        <li>
+          <b>One-time migration</b> — legacy
+          <code style="font-family: var(--mono); font-size: 14px">pmd.docks</code>
+          records become groups + v1 versions, flagged
+          <code style="font-family: var(--mono); font-size: 14px"
+            >pmd.migrated.v1</code
+          >; the original entry is never removed (recovery backup); rerun is a
+          no-op. <b>No eviction cap</b> — the old
+          <code style="font-family: var(--mono); font-size: 14px">MAX_DOCKS = 10</code>
+          does not apply. <code style="font-family: var(--mono); font-size: 14px"
+            >lib/dock-storage.ts</code
+          >
+          now only manages the theme.
+        </li>
+      </ul>
+      <p>
+        <strong>New endpoint</strong>
+        <code style="font-family: var(--mono); font-size: 14px">/api/refine</code>
+        — accepts
+        <code style="font-family: var(--mono); font-size: 14px"
+          >{ goal, prompt, interpretation, changeRequest }</code
+        >, returns <code style="font-family: var(--mono); font-size: 14px"
+          >{ prompt }</code
+        >
+        (one clean replacement, no conversational wrapper). Same provider chain
+        as <code style="font-family: var(--mono); font-size: 14px">/api/build</code>;
+        both routes run the prompt-only guard
+        (<code style="font-family: var(--mono); font-size: 14px"
+          >lib/validate-prompt.ts</code
+        >) that rejects conversational wrappers and never silently strips text.
+      </p>
+      <p>
+        <strong>New route</strong>
+        <code style="font-family: var(--mono); font-size: 14px">/library</code>
+        — client-side search, sort (newest / oldest / A→Z), All / Favorites
+        filter, rename, confirmed delete, Share →
+        <code style="font-family: var(--mono); font-size: 14px"
+          >ComingSoonDialog</code
+        >. Workspace: sticky <code>Composer</code> (Shape idea / Refine prompt
+        modes) + <code>ExpandedComposer</code>; <code>PromptArtifact</code> owns
+        the prompt, Copy/Copied, the <code>VersionPicker</code>, and the
+        carried-forward <em>Understanding changed.</em> + <em>Update
+        prompt</em>; debounced draft autosave with a
+        <em>Saving… / Saved locally / Couldn’t save</em> status line;
+        operation IDs discard stale async responses.
+      </p>
+      <p>
+        <strong>Online status &amp; PWA</strong> —
+        <code style="font-family: var(--mono); font-size: 14px"
+          >lib/online-status.ts</code
+        >
+        (useSyncExternalStore) drives <code>OfflineIndicator</code>: offline,
+        library and saved prompts stay available from the service worker; AI
+        generation is disabled with a plain explanation, never faked.
+        <code style="font-family: var(--mono); font-size: 14px">app/manifest.ts</code>
+        + <code style="font-family: var(--mono); font-size: 14px">public/icons/*</code>
+        (via <code>scripts/generate-icons.py</code>) +
+        <code style="font-family: var(--mono); font-size: 14px">public/sw.js</code>
+        (version <code>pmd-v1</code>; shell and
+        <code style="font-family: var(--mono); font-size: 14px">/library</code>
+        precached, <code style="font-family: var(--mono); font-size: 14px"
+          >/api/*</code
+        >
+        network-only). SW registers in production builds only.
+      </p>
+      <p>
+        <strong>New failure modes handled:</strong> offline generation attempt →
+        disabled with a plain indicator, nothing queued or faked; refine fails →
+        current prompt stays intact + <em>Try again</em>; stale async response →
+        discarded by operation ID; storage write fails → session continues,
+        save-status says <em>Couldn’t save</em> honestly.
+      </p>
+      <p>
+        <strong>Upgrade build slices:</strong> <code>04acbed</code> — versioned
+        library, sticky composer, <code>/api/refine</code>,
+        <code>/library</code>, migration with backup; <code>19a7c86</code> —
+        PWA manifest, icons, service worker with network-only AI routes;
+        <code>9d44225</code> —
+        <code style="font-family: var(--mono); font-size: 14px"
+          >scripts/prompt-store-smoke.ts</code
+        >
+        acceptance test (fake-indexeddb): <strong>22 assertions pass</strong> —
+        migration idempotent with <code>pmd.docks</code> retained, 25 groups
+        survive, three refinements → four sequential intact versions,
+        favorites, scoped delete.
+      </p>
       <footer>
         <b>promptdock-mini / devpost / spec.md + spec.html</b> — approved by the
         learner after review. Canonical source: <code>devpost/spec.md</code>;

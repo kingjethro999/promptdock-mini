@@ -7,6 +7,8 @@ status: approved
 
 One line: a tiny tool that turns a messy, half-formed intention into a precise, editable AI prompt — by showing you its interpretation _before_ it writes the prompt.
 
+> **Update (22 Oct 2026):** the shipped app now includes the *Local-First UX & PWA Upgrade* — see the amendment at the end of this document. Where the amendment and the original text disagree, the amendment wins.
+
 ## The Unique Kernel
 
 **The interpretation is the product, not the prompt.**
@@ -106,13 +108,13 @@ Finished state: running on **Vercel** with a live URL, public repo containing `s
 
 In, tightly:
 
-- One screen, three states: **thought → interpretation → prompt**.
-- One AI call per step: structured generation returning JSON understanding + prompt draft; gated follow-up questions that regenerate.
+- One working screen, three states: **thought → interpretation → prompt** — plus a minimal `/library` route added in the October upgrade (see amendment).
+- One AI call per step: structured generation returning JSON understanding + prompt draft; gated follow-up questions that regenerate; plus a refinement call that applies a change request to the current prompt.
 - Editable interpretation pieces with **known / inferred** provenance marking (gaps resolve before display — see the Gap Rule).
-- One primary action button: **Build prompt**.
+- One primary action button: **Build prompt** (the composer also hosts **Refine prompt** after a prompt exists — see amendment).
 - Follow-up questions: **one at a time, max 3 per dock**, re-evaluated after each answer.
 - Full-height prompt editor with **copy**.
-- **Recent docks** in browser local storage: last 10, newest first, saved only on successful generation, restores editable, auto-titled from Goal, deletable. No accounts, no sync.
+- **Versioned prompt library** in the browser (IndexedDB): immutable versions per prompt, search, sort, favorites, rename, confirmed delete on `/library`. The old localStorage docks (cap 10) migrate in once and stay untouched as a recovery backup. No accounts, no sync.
 - Deployed to Vercel.
 - Planning docs in the repo.
 
@@ -123,10 +125,9 @@ Worth doing, not now:
 - Regenerating the same understanding for a different target (_"Make this for ChatGPT / a coding agent / an image model / shorter / as a system instruction"_) — they already see the architecture supports it: _"the generated prompt is just one representation of that object."_
 - Voice capture of a thought.
 - Accounts + cross-device sync of docks.
-- Prompt version history / restore / compare.
 - Structure-strength control (how structured the output prompt is).
 - Running the prompt against a provider from inside Mini.
-- Template/example library, tags, search.
+- Folders/tags for the library (search, sort, rename, favorites shipped in the October upgrade — see amendment).
 - The full Prompt Dock product: sharing, public links, referrals, usage rewards, teams.
 
 ## Explicitly Cut
@@ -138,5 +139,38 @@ Worth doing, not now:
 - **Multi-agent / multi-step generation pipeline** — one structured request (+ gated follow-ups). Reason: latency kills the magic, and the architecture doesn't need it.
 - **"Run prompt" / in-app chat with the result** — reason: it pulls the demo toward a chatbot, which is the opposite of the point.
 - **Onboarding tour and marketing copy** — the app opens on the input. Reason: _"No 'Welcome to Prompt Dock Mini, your AI-powered prompt optimization companion.'"_
-- **Library management in Recent docks** — renaming, folders, tags, search, pinning. Reason: ten rows with a delete button is the whole feature; anything more is the Prompt Dock product sneaking back in.
+- **Folders, tags, pinning in the library** — search, sort, rename, and favorites shipped in the October upgrade (see amendment); folders, tags, and pinning remain cut. Reason: anything more is the Prompt Dock product sneaking back in.
+- **Voice capture and file attachments** — deferred P1s from the upgrade spec, not shipped untested (see amendment).
 - **A "missing" chip as a visible state** — gaps resolve to inferred or question before the user sees them. Reason: three provenance states is a questionnaire with extra steps; two is a product.
+
+---
+
+## Amendment — Local-First UX & PWA Upgrade (22 Oct 2026)
+
+Status: approved and implemented. Source spec: `PROMPTDOCK_MINI_ADDENDUM.md`. This amendment supersedes the specific locked decisions it names; everything else in this document stands.
+
+### What Changed
+
+1. **Workspace redesigned around a persistent composer** — a sticky bottom composer with explicit modes (Shape idea / Refine prompt), compact progressive panels above it, a full-screen expanded editor, and Library + Coming Soon in the header. The single-scroll page becomes a focused working area.
+2. **Versioned library replaces "Recent docks"** — a new `/library` route backed by IndexedDB (PromptGroups holding immutable PromptVersions). The cap of 10 and the localStorage-only dock list no longer apply. Search, sort, All/Favorites filter, rename, and confirmed delete ship; **Share stays honest — it shows "Coming soon" rather than a fake link.**
+3. **Continuous refinement** — a new `/api/refine` endpoint takes the current prompt plus a change request and returns one clean replacement prompt, saved as a new version. Three refinements produce four intact, copyable versions. This is not a chatbot: no chat transcript is stored, only prompt artifacts.
+4. **PWA** — web manifest, icons, and a service worker. Offline, the library and every saved prompt remain available; AI generation is guarded with a clear offline indicator, never faked.
+5. **Data safety** — the old `pmd.docks` localStorage data is migrated once into the new library and **kept untouched as a recovery backup**; nothing the user already saved is ever deleted.
+
+### Superseded Locked Decisions
+
+- *"Recent docks, latest 10, stored in localStorage"* → versioned IndexedDB library, no eviction cap.
+- *"No renaming, folders, tags, search"* (POC boundary) → rename, search, sort, and favorites now ship; folders/tags/pinning stay out.
+- *"One screen, three states"* → workspace plus one additional minimal route (`/library`).
+- *"Prompt version history — Later"* → shipped (immutable versions with restore-by-selection).
+- *"No navigation"* → header navigation with Library; the workspace itself still grows downward only.
+
+### Unchanged
+
+The unique kernel, the gap rule, and every non-negotiable stand: no accounts, no sync, no chatbot conversion, no fabricated offline AI, no Save button after generation (saving stays automatic), legacy data never deleted, provider keys server-side only.
+
+### Evidence
+
+- `npx tsx scripts/prompt-store-smoke.ts` → **22 assertions pass**: 10 legacy docks migrate intact with the original kept as backup, rerun is a no-op, 25 groups survive (no cap-10 eviction), three refinements yield four sequential intact versions, favorites toggle, scoped delete.
+- Lint, typecheck, and production build pass.
+- Live smoke on the dev server: `/`, `/library`, `/manifest.webmanifest` all 200; real `shape → build → refine` round-trips return prompt-only output with no conversational wrappers.
