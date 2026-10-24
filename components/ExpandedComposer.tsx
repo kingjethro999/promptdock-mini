@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 
 interface ExpandedComposerProps {
   open: boolean;
@@ -126,9 +127,9 @@ function ExpandedPanel({
             type="button"
             aria-label="Close editor"
             onClick={onClose}
-            className="rounded-full border border-line px-3 py-1 text-sm text-muted transition-colors hover:border-green hover:text-fg"
+            className="flex items-center rounded-full border border-line px-3 py-1.5 text-muted transition-colors hover:border-green hover:text-fg"
           >
-            ✕
+            <X aria-hidden className="size-4" />
           </button>
         </div>
         <textarea

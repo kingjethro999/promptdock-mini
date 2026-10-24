@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { Moon, Sun } from "lucide-react";
 import { setTheme } from "../lib/dock-storage";
 import { Theme } from "../lib/types";
 
@@ -37,9 +38,19 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-      className="rounded-full border border-line bg-panel px-3 py-1.5 text-sm text-fg transition-colors hover:border-green"
+      className="flex items-center gap-1.5 rounded-full border border-line bg-panel px-3 py-1.5 text-sm text-fg transition-colors hover:border-green"
     >
-      {theme === "dark" ? "☾ dark" : "☀ light"}
+      {theme === "dark" ? (
+        <>
+          <Moon aria-hidden className="size-3.5" />
+          dark
+        </>
+      ) : (
+        <>
+          <Sun aria-hidden className="size-3.5" />
+          light
+        </>
+      )}
     </button>
   );
 }

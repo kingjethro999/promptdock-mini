@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Check, Copy, Sparkles, Star } from "lucide-react";
 import { PromptVersion } from "../lib/prompt-store";
 import { VersionPicker } from "./VersionPicker";
 
@@ -80,8 +81,12 @@ export function PromptArtifact({
         <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">
           Your prompt
           {updatedCue && (
-            <span className="text-xs font-medium text-green" aria-live="polite">
-              ✦ Updated
+            <span
+              className="flex items-center gap-1 text-xs font-medium text-green"
+              aria-live="polite"
+            >
+              <Sparkles aria-hidden className="size-3" />
+              Updated
             </span>
           )}
         </h2>
@@ -109,22 +114,36 @@ export function PromptArtifact({
           <button
             type="button"
             onClick={() => void handleCopy()}
-            className="rounded-full border border-line bg-panel px-4 py-1.5 text-xs font-semibold text-fg transition-colors hover:border-green"
+            className="flex items-center gap-1.5 rounded-full border border-line bg-panel px-4 py-1.5 text-xs font-semibold text-fg transition-colors hover:border-green"
           >
-            {copied ? "Copied" : "Copy"}
+            {copied ? (
+              <>
+                <Check aria-hidden className="size-3 text-green" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy aria-hidden className="size-3" />
+                Copy
+              </>
+            )}
           </button>
           <button
             type="button"
             disabled={!active}
             onClick={() => active && onToggleFavorite(active.id)}
             aria-pressed={isFavorite}
-            className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${
+            className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${
               isFavorite
                 ? "border-green bg-green text-bg"
                 : "border-line bg-panel text-fg hover:border-green"
             }`}
           >
-            {isFavorite ? "★ Favorited" : "☆ Favorite"}
+            <Star
+              aria-hidden
+              className={`size-3 ${isFavorite ? "fill-current" : ""}`}
+            />
+            {isFavorite ? "Favorited" : "Favorite"}
           </button>
           {canRefine && (
             <button

@@ -1,5 +1,6 @@
 "use client";
 
+import { Star } from "lucide-react";
 import { PromptGroup, PromptVersion } from "../lib/prompt-store";
 
 interface LibraryCardProps {
@@ -59,9 +60,10 @@ export function LibraryCard({
           className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-fg transition-colors hover:text-green"
         >
           {anyFavorite && (
-            <span aria-hidden className="mr-1 text-green">
-              ★
-            </span>
+            <Star
+              aria-hidden
+              className="mr-1 inline size-3 fill-current text-green"
+            />
           )}
           {group.title}
         </button>

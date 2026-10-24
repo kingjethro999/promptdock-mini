@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Sparkles } from "lucide-react";
 
 interface PromptEditorProps {
   value: string;
@@ -49,7 +50,10 @@ export function PromptEditor({
         <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">
           Your prompt
           {updatedCue && (
-            <span className="text-xs font-medium text-green">✦ Updated</span>
+            <span className="flex items-center gap-1 text-xs font-medium text-green">
+              <Sparkles aria-hidden className="size-3" />
+              Updated
+            </span>
           )}
         </h2>
         <button

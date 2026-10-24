@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
 import { Field } from "../lib/types";
 
 interface InterpretationProps {
@@ -80,8 +81,11 @@ export function Interpretation({
               <span className="font-mono text-[10px] font-semibold tracking-widest text-muted uppercase">
                 {field.label}
                 {inferred && (
-                  <span className="ml-1 text-green" aria-hidden>
-                    ✦
+                  <span
+                    className="ml-1 inline-flex text-green"
+                    title="Inferred from your thought"
+                  >
+                    <Sparkles aria-hidden className="size-3" />
                   </span>
                 )}
               </span>
