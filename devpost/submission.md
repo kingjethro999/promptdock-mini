@@ -42,7 +42,7 @@ Beat sheet (addendum §13 — one clean take, ~90–120 s):
 
 **Who it's for.** People who already use AI every day but keep getting mediocre results because their instructions are vague — and who don't want to study prompt engineering to fix that. "Messy is fine" is the promise: bring the thought exactly as it arrives in your head.
 
-**What I learned.** (1) Plan before you build — the scope.md / prd.md / spec.md trail in this repo locked decisions (a hard three-question ceiling, save-on-generation-only, no Save button, honest "Coming soon") that would have eroded during the build. (2) Prompts are contracts — the hand-written system prompts were tested and tightened against deliberately awkward inputs ("asdf", a 900-word ramble) instead of assumed to work. (3) Honesty is a design constraint — no fabricated offline AI, no fake share links, no UI that implies your work was saved when it wasn't.
+**What I learned.** (1) Prompt storage needs to be centralised. These days creators post long prompts inside videos and tutorials, or bury them in post descriptions and captions — and people have to pause, copy them by hand, or rewrite them entirely. Prompt Dock exists to solve exactly that. (2) Structuring and perfecting your prompting up front is what makes an agent understand you at once; the back-and-forth that wastes time and burns AI credits on revision rounds always starts with a misunderstanding you could have fixed before the first send. (3) The future shape of this is a link: instead of long captions and descriptions eating the character limit on social platforms, a creator can focus on the main video and attach a link to reusable prompts — that is where Prompt Dock is heading in its next expansion.
 ```
 
 ## Built with (tags)
