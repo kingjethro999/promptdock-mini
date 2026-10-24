@@ -8,6 +8,8 @@
  * - three consecutive refinements produce four intact, copyable versions
  * - per-version favorites toggle and group-level favorite surfacing
  * - delete removes the group and all its versions, nothing else
+ * - chat session snapshots round-trip: mid-question state, composer text,
+ *   upsert-in-place (no duplicates), find-by-group, newest-first, delete
  *
  * Run: npx tsx scripts/prompt-store-smoke.ts
  */
@@ -198,6 +200,93 @@ async function main(): Promise<void> {
   assert(
     (await store.listGroups()).length === 25,
     "other groups untouched by delete (26 - 1)",
+  );
+
+  // --- chat sessions (full workspace snapshots) ---
+  console.log("chat sessions");
+  const sessionState = {
+    thought: "I need a prompt for my business",
+    fields: [
+      {
+        id: "goal",
+        label: "Goal",
+        value: "write product descriptions",
+        provenance: "known" as const,
+      },
+    ],
+    question: "Who is the audience?",
+    answers: ["small business owners"],
+    questionCount: 1,
+    prompt: null,
+    promptEditedManually: false,
+    pendingSync: false,
+    composerText: "half-typed follow-up",
+    composerMode: "create" as const,
+    activeVersionId: null,
+  };
+  const sessionA = {
+    id: "session-a",
+    groupId: null,
+    title: "I need a prompt for my business",
+    updatedAt: 10_000,
+    state: sessionState,
+  };
+  await store.saveSession(sessionA);
+  const loadedSession = await store.getSession("session-a");
+  assert(loadedSession !== null, "session round-trips through IndexedDB");
+  assert(
+    loadedSession?.state.question === "Who is the audience?",
+    "mid-question state preserved (question survives refresh)",
+  );
+  assert(
+    loadedSession?.state.composerText === "half-typed follow-up",
+    "in-progress composer text preserved",
+  );
+  assert(
+    loadedSession?.state.answers[0] === "small business owners",
+    "answers array preserved",
+  );
+
+  // Upsert: same id updates in place (no duplicate rows).
+  await store.saveSession({
+    ...sessionA,
+    updatedAt: 20_000,
+    state: { ...sessionState, prompt: "Now a built prompt" },
+  });
+  const allAfterUpsert = await store.listSessions();
+  assert(
+    allAfterUpsert.length === 1,
+    "re-saving the same session updates rather than duplicates",
+  );
+  assert(
+    allAfterUpsert[0].state.prompt === "Now a built prompt",
+    "upserted snapshot reflects the newest state",
+  );
+
+  // A session linked to a group is findable by that group (deep links).
+  await store.saveSession({
+    ...sessionA,
+    id: "session-b",
+    groupId: "legacy-1",
+    updatedAt: 30_000,
+  });
+  const byGroup = await store.findSessionByGroup("legacy-1");
+  assert(byGroup?.id === "session-b", "session found by linked group id");
+
+  // Newest-updated first (sidebar order).
+  assert(
+    (await store.listSessions())[0].id === "session-b",
+    "sessions list is newest-updated first",
+  );
+
+  await store.deleteSession("session-a");
+  assert(
+    (await store.getSession("session-a")) === null,
+    "session delete removes the snapshot",
+  );
+  assert(
+    (await store.listSessions()).length === 1,
+    "other sessions untouched by delete",
   );
 
   console.log(`\n${passed} assertions passed`);

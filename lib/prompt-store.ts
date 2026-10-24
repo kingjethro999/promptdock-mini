@@ -5,6 +5,8 @@ import { Dock, Field } from "./types";
  *
  * PromptGroup = one logical prompt (title + thought lineage).
  * PromptVersion = an immutable snapshot of the prompt body at a point in time.
+ * ChatSession = a full workspace snapshot (mid-conversation state) so a
+ * refresh restores the chat exactly where it was — see page.tsx.
  *
  * localStorage (`pmd.docks`) remains untouched as a recovery backup after
  * migration — see migrateFromLegacyDocks().
@@ -38,10 +40,35 @@ export interface PromptVersion {
   answersSnapshot?: string[];
 }
 
+/** Everything the workspace needs to resume a chat mid-flight. */
+export interface SessionState {
+  thought: string;
+  fields: Field[] | null;
+  question: string | null;
+  answers: string[];
+  questionCount: number;
+  prompt: string | null;
+  promptEditedManually: boolean;
+  pendingSync: boolean;
+  composerText: string;
+  composerMode: "create" | "refine";
+  activeVersionId: string | null;
+}
+
+export interface ChatSession {
+  id: string;
+  /** Linked prompt group once its first version is committed (nullable). */
+  groupId: string | null;
+  title: string;
+  updatedAt: number;
+  state: SessionState;
+}
+
 const DB_NAME = "promptdock-mini";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_GROUPS = "groups";
 const STORE_VERSIONS = "versions";
+const STORE_SESSIONS = "sessions";
 export const MIGRATION_FLAG = "pmd.migrated.v1";
 
 function indexedDbAvailable(): boolean {
@@ -71,6 +98,12 @@ function openDb(): Promise<IDBDatabase> {
         });
         versions.createIndex("groupId", "groupId");
         versions.createIndex("groupId+versionNumber", ["groupId", "versionNumber"]);
+      }
+      if (!db.objectStoreNames.contains(STORE_SESSIONS)) {
+        const sessions = db.createObjectStore(STORE_SESSIONS, {
+          keyPath: "id",
+        });
+        sessions.createIndex("updatedAt", "updatedAt");
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -323,6 +356,76 @@ export async function listFavorites(): Promise<PromptVersion[]> {
     return all
       .filter((v) => v.isFavorite)
       .sort((a, b) => b.createdAt - a.createdAt);
+  } finally {
+    db.close();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Chat sessions (mid-conversation snapshots; survive refresh)
+// ---------------------------------------------------------------------------
+
+/** Upsert one session snapshot. */
+export async function saveSession(session: ChatSession): Promise<void> {
+  const db = await openDb();
+  try {
+    const tx = db.transaction(STORE_SESSIONS, "readwrite");
+    tx.objectStore(STORE_SESSIONS).put(session);
+    await txDone(tx);
+  } finally {
+    db.close();
+  }
+}
+
+export async function getSession(id: string): Promise<ChatSession | null> {
+  const db = await openDb();
+  try {
+    const tx = db.transaction(STORE_SESSIONS, "readonly");
+    const session = await reqResult<ChatSession | undefined>(
+      tx.objectStore(STORE_SESSIONS).get(id),
+    );
+    return session ?? null;
+  } finally {
+    db.close();
+  }
+}
+
+/** The session linked to a group (deep links), or null. */
+export async function findSessionByGroup(
+  groupId: string,
+): Promise<ChatSession | null> {
+  const db = await openDb();
+  try {
+    const tx = db.transaction(STORE_SESSIONS, "readonly");
+    const all = await reqResult<ChatSession[]>(
+      tx.objectStore(STORE_SESSIONS).getAll(),
+    );
+    return all.find((s) => s.groupId === groupId) ?? null;
+  } finally {
+    db.close();
+  }
+}
+
+/** All sessions, newest-updated first (sidebar order). */
+export async function listSessions(): Promise<ChatSession[]> {
+  const db = await openDb();
+  try {
+    const tx = db.transaction(STORE_SESSIONS, "readonly");
+    const sessions = await reqResult<ChatSession[]>(
+      tx.objectStore(STORE_SESSIONS).getAll(),
+    );
+    return sessions.sort((a, b) => b.updatedAt - a.updatedAt);
+  } finally {
+    db.close();
+  }
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  const db = await openDb();
+  try {
+    const tx = db.transaction(STORE_SESSIONS, "readwrite");
+    tx.objectStore(STORE_SESSIONS).delete(id);
+    await txDone(tx);
   } finally {
     db.close();
   }

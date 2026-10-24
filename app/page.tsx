@@ -10,12 +10,18 @@ import { PromptArtifact } from "../components/PromptArtifact";
 import { ThoughtInput } from "../components/ThoughtInput";
 import { useOnlineStatus } from "../lib/online-status";
 import {
+  ChatSession,
   PromptVersion,
+  SessionState,
   appendVersion,
   createGroupWithVersion,
+  findSessionByGroup,
   getGroup,
+  getSession,
   listVersions,
   migrateFromLegacyDocks,
+  newId,
+  saveSession,
   toggleFavorite,
 } from "../lib/prompt-store";
 import { dockTitle } from "../lib/dock-storage";
@@ -34,7 +40,11 @@ type ComposerMode = "create" | "refine";
 
 const DRAFT_KEY = "pmd.draft";
 const SESSION_KEY = "pmd.session";
+const LAST_SESSION_KEY = "pmd.session.last";
 const DRAFT_SAVE_DELAY = 1500;
+const SESSION_SAVE_DELAY = 700;
+
+type LoadedGroup = NonNullable<Awaited<ReturnType<typeof getGroup>>>;
 
 export default function Home() {
   const online = useOnlineStatus();
@@ -74,30 +84,26 @@ export default function Home() {
   const opIdRef = useRef(0);
   const groupIdRef = useRef<string | null>(null);
   const activeVersionRef = useRef<string | null>(null);
+  // Chat-session snapshot: id once a chat has content, timer for the
+  // debounced save, and the last payload so we can flush on page hide.
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionReady = useRef(false);
+  const sessionSnapshot = useRef<ChatSession | null>(null);
 
   useEffect(() => {
     return () => {
       if (cueTimer.current) clearTimeout(cueTimer.current);
       if (draftTimer.current) clearTimeout(draftTimer.current);
+      if (sessionTimer.current) clearTimeout(sessionTimer.current);
     };
   }, []);
 
-  // --- bootstrap: migrate legacy docks, then restore session or deep link ---
+  // --- bootstrap: migrate, then resume the open chat (deep link or last) ---
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      await migrateFromLegacyDocks();
-      if (cancelled) return;
 
-      const params = new URLSearchParams(window.location.search);
-      const deepLink = params.get("group");
-      const targetId = deepLink ?? readSessionGroupId();
-      if (!targetId) return;
-      const group = await getGroup(targetId);
-      if (cancelled || !group) return;
-      const loaded = await listVersions(targetId);
-      if (cancelled || loaded.length === 0) return;
-
+    function restoreGroup(group: LoadedGroup, loaded: PromptVersion[]): string {
       const active =
         loaded.find((v) => v.id === group.latestVersionId) ??
         loaded[loaded.length - 1];
@@ -111,14 +117,105 @@ export default function Home() {
       setPromptEditedManually(active.source === "manual-edit");
       setFields(active.interpretationSnapshot ?? null);
       setAnswers(active.answersSnapshot ?? []);
+      return active.body;
+    }
 
-      // Restore an uncommitted draft newer than the active version.
+    function restoreSessionState(st: SessionState) {
+      setThought(st.thought);
+      setFields(st.fields);
+      setQuestion(st.question);
+      setAnswers(st.answers);
+      setQuestionCount(st.questionCount);
+      setPrompt(st.prompt);
+      setPromptEditedManually(st.promptEditedManually);
+      setPendingSync(st.pendingSync);
+      setComposerText(st.composerText);
+      setComposerMode(st.composerMode);
+      if (st.activeVersionId) {
+        activeVersionRef.current = st.activeVersionId;
+        setActiveVersionId(st.activeVersionId);
+      }
+    }
+
+    function restoreDraftFor(groupIdOfDraft: string, currentBody: string | null) {
       const draft = readDraft();
-      if (draft && draft.groupId === group.id && draft.body !== active.body) {
+      if (draft && draft.groupId === groupIdOfDraft && draft.body !== currentBody) {
         setPrompt(draft.body);
         setPromptEditedManually(true);
       }
+    }
+
+    void (async () => {
+      await migrateFromLegacyDocks();
+      if (cancelled) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const deepLink = params.get("group");
+
+      // 1) Deep link: open that prompt's chat, resuming its conversation.
+      if (deepLink) {
+        const group = await getGroup(deepLink);
+        if (cancelled || !group) return;
+        const loaded = await listVersions(deepLink);
+        if (cancelled || loaded.length === 0) return;
+        const existing = await findSessionByGroup(deepLink);
+        if (cancelled) return;
+        const restoredBody = restoreGroup(group, loaded);
+        if (existing) {
+          sessionIdRef.current = existing.id;
+          restoreSessionState(existing.state);
+          restoreDraftFor(deepLink, existing.state.prompt);
+          writeLastSessionId(existing.id);
+        } else {
+          sessionIdRef.current = newId();
+          restoreDraftFor(deepLink, restoredBody);
+        }
+        setSaveState("saved");
+        sessionReady.current = true;
+        return;
+      }
+
+      // 2) No deep link: restore the full snapshot of the last open chat.
+      const lastId = readLastSessionId();
+      const session = lastId ? await getSession(lastId) : null;
+      if (cancelled) return;
+      if (session) {
+        sessionIdRef.current = session.id;
+        if (session.groupId) {
+          const group = await getGroup(session.groupId);
+          if (cancelled) return;
+          const loaded = group ? await listVersions(group.id) : [];
+          if (cancelled) return;
+          if (group && loaded.length > 0) restoreGroup(group, loaded);
+        }
+        restoreSessionState(session.state);
+        if (session.groupId) {
+          restoreDraftFor(session.groupId, session.state.prompt);
+          setSaveState("saved");
+        }
+        sessionReady.current = true;
+        return;
+      }
+
+      // 3) Legacy fallback: a prompt group remembered by the old pointer.
+      const legacyId = readSessionGroupId();
+      if (!legacyId) {
+        sessionReady.current = true;
+        return;
+      }
+      const group = await getGroup(legacyId);
+      if (cancelled || !group) {
+        sessionReady.current = true;
+        return;
+      }
+      const loaded = await listVersions(legacyId);
+      if (cancelled || loaded.length === 0) return;
+      const restoredBody = restoreGroup(group, loaded);
+      restoreDraftFor(legacyId, restoredBody);
+      sessionIdRef.current = newId();
+      writeLastSessionId(sessionIdRef.current);
       setSaveState("saved");
+      sessionReady.current = true;
     })();
     return () => {
       cancelled = true;
@@ -135,6 +232,91 @@ export default function Home() {
       // Storage unavailable — session restore is best-effort.
     }
   }, [groupId]);
+
+  // --- session snapshot: the whole workspace survives a refresh ---
+  const snapshot = useMemo<SessionState>(
+    () => ({
+      thought,
+      fields,
+      question,
+      answers,
+      questionCount,
+      prompt,
+      promptEditedManually,
+      pendingSync,
+      composerText,
+      composerMode,
+      activeVersionId,
+    }),
+    [
+      thought,
+      fields,
+      question,
+      answers,
+      questionCount,
+      prompt,
+      promptEditedManually,
+      pendingSync,
+      composerText,
+      composerMode,
+      activeVersionId,
+    ],
+  );
+
+  const snapshotEmpty =
+    snapshot.thought.trim() === "" &&
+    snapshot.fields === null &&
+    snapshot.prompt === null &&
+    snapshot.composerText.trim() === "" &&
+    snapshot.answers.length === 0;
+
+  useEffect(() => {
+    if (!sessionReady.current || snapshotEmpty) return;
+    const id = sessionIdRef.current ?? newId();
+    sessionIdRef.current = id;
+    const payload: ChatSession = {
+      id,
+      groupId,
+      title: fields
+        ? dockTitle(fields, thought)
+        : thought.trim() || snapshot.composerText.trim() || "New chat",
+      updatedAt: Date.now(),
+      state: snapshot,
+    };
+    sessionSnapshot.current = payload;
+    if (sessionTimer.current) clearTimeout(sessionTimer.current);
+    sessionTimer.current = setTimeout(() => {
+      sessionTimer.current = null;
+      void saveSession(payload)
+        .then(() => writeLastSessionId(payload.id))
+        .catch(() => {
+          // Persistence is best-effort; the workspace keeps working without it.
+        });
+    }, SESSION_SAVE_DELAY);
+  }, [snapshot, snapshotEmpty, groupId, fields, thought]);
+
+  // Flush the pending snapshot when the tab is hidden or closing.
+  useEffect(() => {
+    const flush = () => {
+      if (!sessionReady.current) return;
+      const payload = sessionSnapshot.current;
+      if (!payload) return;
+      if (sessionTimer.current) {
+        clearTimeout(sessionTimer.current);
+        sessionTimer.current = null;
+      }
+      void saveSession({ ...payload, updatedAt: Date.now() }).catch(() => {});
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   function flashUpdated() {
     setUpdatedCue(true);
@@ -194,6 +376,7 @@ export default function Home() {
       if (!res.ok) throw new Error(`shape failed: ${res.status}`);
       const data = (await res.json()) as ShapeResponse;
       setThought(payload.thought);
+      setComposerText("");
       setFields(data.interpretation.fields);
       const asksAgain =
         data.needsFollowUp &&
@@ -218,7 +401,9 @@ export default function Home() {
   function handleSubmit(next: string) {
     if (promptBusy) return;
     const isReshape = fields !== null;
-    setComposerText("");
+    // Keep the text in the composer until the request succeeds: a refresh
+    // mid-flight then restores the input instead of dropping it.
+    setThought(next);
     void runShape({
       thought: next,
       interpretation: isReshape && fields ? { fields } : undefined,
@@ -372,7 +557,6 @@ export default function Home() {
     const opId = ++opIdRef.current;
     setPromptBusy(true);
     setErrorKind(null);
-    setComposerText("");
     try {
       const res = await fetch("/api/refine", {
         method: "POST",
@@ -403,6 +587,7 @@ export default function Home() {
       setPrompt(next);
       setPromptEditedManually(false);
       setPendingSync(false);
+      setComposerText("");
       flashUpdated();
       return true;
     } catch {
@@ -705,6 +890,22 @@ function readSessionGroupId(): string | null {
     return window.localStorage.getItem(SESSION_KEY);
   } catch {
     return null;
+  }
+}
+
+function readLastSessionId(): string | null {
+  try {
+    return window.localStorage.getItem(LAST_SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeLastSessionId(id: string): void {
+  try {
+    window.localStorage.setItem(LAST_SESSION_KEY, id);
+  } catch {
+    // Pointer is a convenience; the snapshot itself lives in IndexedDB.
   }
 }
 
