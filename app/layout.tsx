@@ -24,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <ThemeBoot />
       </head>
-      <body className="flex min-h-full flex-col font-sans">
+      <body className="h-full overflow-hidden font-sans">
         <AppShell>{children}</AppShell>
       </body>
     </html>

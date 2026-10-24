@@ -12,9 +12,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ServiceWorkerRegister />
-      <AppHeader onOpenComingSoon={() => setComingSoonOpen(true)} />
-      <OfflineIndicator />
-      <div className="flex flex-1 flex-col">{children}</div>
+      {/* App shell: header is pinned; only the content region scrolls. */}
+      <div className="flex h-dvh flex-col overflow-hidden">
+        <div className="shrink-0">
+          <AppHeader onOpenComingSoon={() => setComingSoonOpen(true)} />
+          <OfflineIndicator />
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+          <div className="flex min-h-full flex-1 flex-col">{children}</div>
+        </div>
+      </div>
       <ComingSoonDialog
         open={comingSoonOpen}
         onClose={() => setComingSoonOpen(false)}
