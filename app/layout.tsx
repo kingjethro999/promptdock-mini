@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { ThemeBoot } from "./theme-boot";
-import { AppShell } from "../components/AppShell";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -25,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeBoot />
       </head>
       <body className="h-full overflow-hidden font-sans">
-        <AppShell>{children}</AppShell>
+        {children}
       </body>
     </html>
   );

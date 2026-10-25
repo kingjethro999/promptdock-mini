@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Star } from "lucide-react";
+import { AppShell } from "../../components/AppShell";
 import { LibraryCard } from "../../components/LibraryCard";
 import { useOnlineStatus } from "../../lib/online-status";
 import {
@@ -92,81 +94,97 @@ export default function LibraryPage() {
   }, [groups, versionsByGroup, query, sort, filter]);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-extrabold tracking-tight text-fg">
-          Library
-        </h1>
-        <p className="text-xs text-muted">
-          Local to this browser — clearing site data removes it.{" "}
-          {!online && "Available offline."}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor="library-search" className="sr-only">
-          Search prompts
-        </label>
-        <input
-          id="library-search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search titles and prompt bodies…"
-          className="min-w-52 flex-1 rounded-full border border-line bg-panel px-4 py-2 text-sm text-fg placeholder:text-muted focus:border-green focus:outline-none"
-        />
-        <label htmlFor="library-sort" className="sr-only">
-          Sort
-        </label>
-        <select
-          id="library-sort"
-          value={sort}
-          onChange={(event) => setSort(event.target.value as SortMode)}
-          className="rounded-full border border-line bg-panel px-3 py-2 text-xs font-semibold text-fg focus:border-green focus:outline-none"
-        >
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="alpha">A → Z</option>
-        </select>
-        <div className="flex items-center gap-1" role="group" aria-label="Filter">
-          {(["all", "favorites"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              aria-pressed={filter === mode}
-              onClick={() => setFilter(mode)}
-              className={`rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
-                filter === mode
-                  ? "border-green text-fg"
-                  : "border-line text-muted hover:border-green hover:text-fg"
-              }`}
-            >
-              {mode === "all" ? "All" : "★ Favorites"}
-            </button>
-          ))}
+    <AppShell>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-10">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-extrabold tracking-tight text-fg">
+            Library
+          </h1>
+          <p className="text-xs text-muted">
+            Local to this browser — clearing site data removes it.{" "}
+            {!online && "Available offline."}
+          </p>
         </div>
-      </div>
 
-      {loaded && visible.length === 0 ? (
-        <p className="rounded-2xl border border-line bg-panel px-4 py-8 text-center text-sm text-muted">
-          {groups.length === 0
-            ? "No prompts yet. Shape an idea on the workspace and it saves here automatically."
-            : "Nothing matches that search."}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {visible.map((group) => (
-            <LibraryCard
-              key={group.id}
-              group={group}
-              versions={versionsByGroup[group.id] ?? []}
-              onOpen={handleOpen}
-              onRename={handleRename}
-              onDelete={handleDelete}
-              onComingSoon={() => router.push("/library")}
-            />
-          ))}
-        </ul>
-      )}
-    </main>
+        <div className="flex flex-wrap items-center gap-3">
+          <label htmlFor="library-search" className="sr-only">
+            Search prompts
+          </label>
+          <input
+            id="library-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search titles and prompt bodies…"
+            className="min-w-52 flex-1 rounded-full border border-line bg-panel px-4 py-2 text-sm text-fg placeholder:text-muted focus:border-green focus:outline-none"
+          />
+          <label htmlFor="library-sort" className="sr-only">
+            Sort
+          </label>
+          <select
+            id="library-sort"
+            value={sort}
+            onChange={(event) => setSort(event.target.value as SortMode)}
+            className="rounded-full border border-line bg-panel px-3 py-2 text-xs font-semibold text-fg focus:border-green focus:outline-none"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="alpha">A → Z</option>
+          </select>
+          <div
+            className="flex items-center gap-1"
+            role="group"
+            aria-label="Filter"
+          >
+            {(["all", "favorites"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={filter === mode}
+                onClick={() => setFilter(mode)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                  filter === mode
+                    ? "border-green text-fg"
+                    : "border-line text-muted hover:border-green hover:text-fg"
+                }`}
+              >
+                {mode === "all" ? (
+                  "All"
+                ) : (
+                  <>
+                    <Star
+                      aria-hidden
+                      className={`size-3 ${filter === mode ? "fill-current" : ""}`}
+                    />
+                    Favorites
+                  </>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loaded && visible.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-panel px-4 py-8 text-center text-sm text-muted">
+            {groups.length === 0
+              ? "No prompts yet. Shape an idea on the workspace and it saves here automatically."
+              : "Nothing matches that search."}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {visible.map((group) => (
+              <LibraryCard
+                key={group.id}
+                group={group}
+                versions={versionsByGroup[group.id] ?? []}
+                onOpen={handleOpen}
+                onRename={handleRename}
+                onDelete={handleDelete}
+                onComingSoon={() => router.push("/library")}
+              />
+            ))}
+          </ul>
+        )}
+      </main>
+    </AppShell>
   );
 }

@@ -406,6 +406,27 @@ export async function findSessionByGroup(
   }
 }
 
+/** A favorited version joined with its group title (right-rail cards). */
+export interface FavoriteCard {
+  versionId: string;
+  groupId: string;
+  title: string;
+  body: string;
+  createdAt: number;
+}
+
+export async function listFavoriteCards(): Promise<FavoriteCard[]> {
+  const [favs, groups] = await Promise.all([listFavorites(), listGroups()]);
+  const titleByGroup = new Map(groups.map((g) => [g.id, g.title]));
+  return favs.map((v) => ({
+    versionId: v.id,
+    groupId: v.groupId,
+    title: titleByGroup.get(v.groupId) ?? "Untitled prompt",
+    body: v.body,
+    createdAt: v.createdAt,
+  }));
+}
+
 /** All sessions, newest-updated first (sidebar order). */
 export async function listSessions(): Promise<ChatSession[]> {
   const db = await openDb();

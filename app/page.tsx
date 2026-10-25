@@ -1,23 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppShell } from "../components/AppShell";
 import { BuildPrompt } from "../components/BuildPrompt";
+import { ChatSidebar } from "../components/ChatSidebar";
 import { Composer } from "../components/Composer";
 import { ExpandedComposer } from "../components/ExpandedComposer";
 import { FollowUpQuestion } from "../components/FollowUpQuestion";
 import { Interpretation } from "../components/Interpretation";
 import { PromptArtifact } from "../components/PromptArtifact";
+import { SavedPromptsRail } from "../components/SavedPromptsRail";
 import { ThoughtInput } from "../components/ThoughtInput";
 import { useOnlineStatus } from "../lib/online-status";
 import {
   ChatSession,
+  FavoriteCard,
   PromptVersion,
   SessionState,
   appendVersion,
   createGroupWithVersion,
+  deleteSession,
   findSessionByGroup,
   getGroup,
   getSession,
+  listFavoriteCards,
+  listSessions,
   listVersions,
   migrateFromLegacyDocks,
   newId,
@@ -99,11 +106,36 @@ export default function Home() {
     };
   }, []);
 
-  // --- bootstrap: migrate, then resume the open chat (deep link or last) ---
-  useEffect(() => {
-    let cancelled = false;
+  // --- sidebar & saved-prompts data ---
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [favoriteCards, setFavoriteCards] = useState<FavoriteCard[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
-    function restoreGroup(group: LoadedGroup, loaded: PromptVersion[]): string {
+  const refreshSessions = useCallback(async () => {
+    try {
+      setSessions(await listSessions());
+    } catch {
+      // Storage unavailable — the sidebar just stays as it was.
+    }
+  }, []);
+
+  const refreshFavorites = useCallback(async () => {
+    try {
+      setFavoriteCards(await listFavoriteCards());
+    } catch {
+      // Same best-effort rule as every other local store read.
+    }
+  }, []);
+
+  /** Keep the ref (logic) and the state (rendering) on the same id. */
+  const activateSession = useCallback((id: string | null) => {
+    sessionIdRef.current = id;
+    setActiveSessionId(id);
+  }, []);
+
+  // --- workspace restore helpers (shared by bootstrap & chat switching) ---
+  const restoreGroup = useCallback(
+    (group: LoadedGroup, loaded: PromptVersion[]): string => {
       const active =
         loaded.find((v) => v.id === group.latestVersionId) ??
         loaded[loaded.length - 1];
@@ -118,32 +150,108 @@ export default function Home() {
       setFields(active.interpretationSnapshot ?? null);
       setAnswers(active.answersSnapshot ?? []);
       return active.body;
-    }
+    },
+    [],
+  );
 
-    function restoreSessionState(st: SessionState) {
-      setThought(st.thought);
-      setFields(st.fields);
-      setQuestion(st.question);
-      setAnswers(st.answers);
-      setQuestionCount(st.questionCount);
-      setPrompt(st.prompt);
-      setPromptEditedManually(st.promptEditedManually);
-      setPendingSync(st.pendingSync);
-      setComposerText(st.composerText);
-      setComposerMode(st.composerMode);
-      if (st.activeVersionId) {
-        activeVersionRef.current = st.activeVersionId;
-        setActiveVersionId(st.activeVersionId);
-      }
+  const restoreSessionState = useCallback((st: SessionState) => {
+    setThought(st.thought);
+    setFields(st.fields);
+    setQuestion(st.question);
+    setAnswers(st.answers);
+    setQuestionCount(st.questionCount);
+    setPrompt(st.prompt);
+    setPromptEditedManually(st.promptEditedManually);
+    setPendingSync(st.pendingSync);
+    setComposerText(st.composerText);
+    setComposerMode(st.composerMode);
+    if (st.activeVersionId) {
+      activeVersionRef.current = st.activeVersionId;
+      setActiveVersionId(st.activeVersionId);
     }
+  }, []);
 
-    function restoreDraftFor(groupIdOfDraft: string, currentBody: string | null) {
+  const restoreDraftFor = useCallback(
+    (groupIdOfDraft: string, currentBody: string | null) => {
       const draft = readDraft();
-      if (draft && draft.groupId === groupIdOfDraft && draft.body !== currentBody) {
+      if (
+        draft &&
+        draft.groupId === groupIdOfDraft &&
+        draft.body !== currentBody
+      ) {
         setPrompt(draft.body);
         setPromptEditedManually(true);
       }
+    },
+    [],
+  );
+
+  /** Wipe the workspace back to the empty hero (start of a fresh chat). */
+  const resetWorkspace = useCallback(() => {
+    opIdRef.current += 1; // discard any in-flight responses
+    groupIdRef.current = null;
+    activeVersionRef.current = null;
+    sessionSnapshot.current = null;
+    if (sessionTimer.current) {
+      clearTimeout(sessionTimer.current);
+      sessionTimer.current = null;
     }
+    if (draftTimer.current) {
+      clearTimeout(draftTimer.current);
+      draftTimer.current = null;
+    }
+    try {
+      window.localStorage.removeItem(LAST_SESSION_KEY);
+      window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // Best-effort cleanup.
+    }
+    activateSession(null);
+    setThought("");
+    setFields(null);
+    setQuestion(null);
+    setAnswers([]);
+    setQuestionCount(0);
+    setPrompt(null);
+    setPromptEditedManually(false);
+    setPendingSync(false);
+    setPending(null);
+    setComposerText("");
+    setComposerMode("create");
+    setExpandOpen(false);
+    setGroupId(null);
+    setVersions([]);
+    setActiveVersionId(null);
+    setErrorKind(null);
+    setSaveState("idle");
+    setUpdatedCue(false);
+    setBusy(false);
+    setPromptBusy(false);
+  }, [activateSession]);
+
+  /** Save whatever is on screen right now, without waiting for the debounce. */
+  const persistSessionNow = useCallback((): Promise<void> => {
+    const payload = sessionSnapshot.current;
+    if (!payload) return Promise.resolve();
+    if (sessionTimer.current) {
+      clearTimeout(sessionTimer.current);
+      sessionTimer.current = null;
+    }
+    return saveSession({ ...payload, updatedAt: Date.now() })
+      .then(() => {
+        // Only claim the "last open chat" pointer if we're still on it —
+        // a New chat / switch that already reset the pointer wins.
+        if (sessionIdRef.current === payload.id) writeLastSessionId(payload.id);
+        void refreshSessions();
+      })
+      .catch(() => {
+        // Persistence is best-effort; the workspace keeps working without it.
+      });
+  }, [refreshSessions]);
+
+  // --- bootstrap: migrate, then resume the open chat (deep link or last) ---
+  useEffect(() => {
+    let cancelled = false;
 
     void (async () => {
       await migrateFromLegacyDocks();
@@ -162,12 +270,12 @@ export default function Home() {
         if (cancelled) return;
         const restoredBody = restoreGroup(group, loaded);
         if (existing) {
-          sessionIdRef.current = existing.id;
+          activateSession(existing.id);
           restoreSessionState(existing.state);
           restoreDraftFor(deepLink, existing.state.prompt);
           writeLastSessionId(existing.id);
         } else {
-          sessionIdRef.current = newId();
+          activateSession(newId());
           restoreDraftFor(deepLink, restoredBody);
         }
         setSaveState("saved");
@@ -180,7 +288,7 @@ export default function Home() {
       const session = lastId ? await getSession(lastId) : null;
       if (cancelled) return;
       if (session) {
-        sessionIdRef.current = session.id;
+        activateSession(session.id);
         if (session.groupId) {
           const group = await getGroup(session.groupId);
           if (cancelled) return;
@@ -212,15 +320,27 @@ export default function Home() {
       if (cancelled || loaded.length === 0) return;
       const restoredBody = restoreGroup(group, loaded);
       restoreDraftFor(legacyId, restoredBody);
-      sessionIdRef.current = newId();
-      writeLastSessionId(sessionIdRef.current);
+      activateSession(newId());
+      writeLastSessionId(sessionIdRef.current!);
       setSaveState("saved");
       sessionReady.current = true;
-    })();
+    })()
+      // Sidebar and saved-prompts lists load once bootstrap finishes.
+      .finally(() => {
+        void refreshSessions();
+        void refreshFavorites();
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [
+    activateSession,
+    refreshFavorites,
+    refreshSessions,
+    restoreDraftFor,
+    restoreGroup,
+    restoreSessionState,
+  ]);
 
   // Session pointer: remember the open group for reload restoration.
   useEffect(() => {
@@ -271,9 +391,14 @@ export default function Home() {
     snapshot.answers.length === 0;
 
   useEffect(() => {
-    if (!sessionReady.current || snapshotEmpty) return;
+    if (!sessionReady.current) return;
+    if (snapshotEmpty) {
+      // Nothing on screen yet — don't create an empty "New chat" row.
+      sessionSnapshot.current = null;
+      return;
+    }
     const id = sessionIdRef.current ?? newId();
-    sessionIdRef.current = id;
+    if (sessionIdRef.current !== id) activateSession(id);
     const payload: ChatSession = {
       id,
       groupId,
@@ -288,12 +413,23 @@ export default function Home() {
     sessionTimer.current = setTimeout(() => {
       sessionTimer.current = null;
       void saveSession(payload)
-        .then(() => writeLastSessionId(payload.id))
+        .then(() => {
+          writeLastSessionId(payload.id);
+          void refreshSessions(); // keeps sidebar titles/times current
+        })
         .catch(() => {
           // Persistence is best-effort; the workspace keeps working without it.
         });
     }, SESSION_SAVE_DELAY);
-  }, [snapshot, snapshotEmpty, groupId, fields, thought]);
+  }, [
+    snapshot,
+    snapshotEmpty,
+    groupId,
+    fields,
+    thought,
+    activateSession,
+    refreshSessions,
+  ]);
 
   // Flush the pending snapshot when the tab is hidden or closing.
   useEffect(() => {
@@ -657,10 +793,116 @@ export default function Home() {
   function handleToggleFavorite(versionId: string) {
     void (async () => {
       const updated = await toggleFavorite(versionId);
-      if (!updated) return;
-      setVersions((prev) =>
-        prev.map((v) => (v.id === versionId ? updated : v)),
+      if (updated) {
+        setVersions((prev) =>
+          prev.map((v) => (v.id === versionId ? updated : v)),
+        );
+      }
+      await refreshFavorites();
+    })();
+  }
+
+  // --- sidebar: switch chat, start new, delete ---
+
+  /** Replace the whole workspace with one stored chat snapshot. */
+  async function applySession(session: ChatSession) {
+    resetWorkspace();
+    activateSession(session.id);
+    writeLastSessionId(session.id);
+    if (session.groupId) {
+      const group = await getGroup(session.groupId);
+      const loaded = group ? await listVersions(group.id) : [];
+      if (group && loaded.length > 0) restoreGroup(group, loaded);
+    }
+    restoreSessionState(session.state);
+    if (session.groupId) {
+      restoreDraftFor(session.groupId, session.state.prompt);
+      setSaveState("saved");
+    }
+    sessionSnapshot.current = null; // rebuilt by the save effect
+    setUrlForGroup(session.groupId);
+    await refreshSessions();
+  }
+
+  function setUrlForGroup(groupIdOfChat: string | null) {
+    try {
+      window.history.replaceState(
+        null,
+        "",
+        groupIdOfChat ? `/?group=${encodeURIComponent(groupIdOfChat)}` : "/",
       );
+    } catch {
+      // URL sync is cosmetic; refresh restore uses the stored pointer.
+    }
+  }
+
+  function handleSelectSession(id: string) {
+    if (id === sessionIdRef.current) return;
+    void (async () => {
+      await persistSessionNow(); // the open chat is saved before we leave it
+      const session = await getSession(id);
+      if (!session) {
+        await refreshSessions();
+        return;
+      }
+      await applySession(session);
+    })();
+  }
+
+  /** Open a saved prompt (right rail) as a chat, reusing its snapshot. */
+  function handleOpenGroup(groupIdOfPrompt: string) {
+    void (async () => {
+      await persistSessionNow();
+      const existing = await findSessionByGroup(groupIdOfPrompt);
+      if (existing) {
+        await applySession(existing);
+        return;
+      }
+      const group = await getGroup(groupIdOfPrompt);
+      const loaded = group ? await listVersions(groupIdOfPrompt) : [];
+      const latest =
+        loaded.find((v) => v.id === group?.latestVersionId) ??
+        loaded[loaded.length - 1];
+      const fresh: ChatSession = {
+        id: newId(),
+        groupId: groupIdOfPrompt,
+        title: group?.title ?? "Prompt",
+        updatedAt: Date.now(),
+        state: {
+          thought: group?.originalThought ?? "",
+          fields: latest?.interpretationSnapshot ?? null,
+          question: null,
+          answers: latest?.answersSnapshot ?? [],
+          questionCount: 0,
+          prompt: latest?.body ?? null,
+          promptEditedManually: latest?.source === "manual-edit",
+          pendingSync: false,
+          composerText: "",
+          composerMode: "create",
+          activeVersionId: latest?.id ?? null,
+        },
+      };
+      await applySession(fresh);
+    })();
+  }
+
+  function handleNewChat() {
+    void persistSessionNow(); // don't lose the chat being left
+    resetWorkspace();
+    setUrlForGroup(null);
+  }
+
+  function handleDeleteSession(id: string) {
+    void (async () => {
+      const wasActive = id === sessionIdRef.current;
+      if (!wasActive) await persistSessionNow();
+      try {
+        await deleteSession(id);
+      } catch {
+        // Best-effort: a failed delete just leaves the row in place.
+      }
+      if (wasActive) resetWorkspace(); // never re-save the deleted chat
+      await refreshSessions();
     })();
   }
 
@@ -708,178 +950,198 @@ export default function Home() {
   const busyGenerating = busy || promptBusy;
 
   return (
-    <main className="flex flex-1 flex-col">
-      <div className="flex flex-1 flex-col justify-center gap-8 px-6 py-10">
-        {fields === null ? (
-          <section className="mx-auto flex w-full max-w-2xl flex-col items-center gap-3 text-center">
-            <h1 className="text-2xl font-extrabold tracking-tight text-fg">
-              What are you trying to get done?
-            </h1>
-            <p className="text-sm text-muted">
-              Messy is fine. No perfect prompt needed.
-            </p>
-          </section>
-        ) : (
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-            <section className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold text-muted">Your thought</h2>
-              <ThoughtInput
-                value={thought}
-                onChange={setThought}
-                onSubmit={handleSubmit}
-                busy={busy}
-                labelHidden
-                rows={2}
-                placeholder="Your rough thought"
-              />
-            </section>
-
-            <section className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold text-muted">
-                What I understood
-              </h2>
-              <Interpretation
-                fields={fields}
-                onChange={handleFieldChange}
-                disabled={busy || promptBusy}
-              />
-            </section>
-
-            {question !== null && (
-              <FollowUpQuestion
-                question={question}
-                questionCount={questionCount}
-                busy={busy}
-                onContinue={handleContinue}
-              />
-            )}
-
-            {question === null && prompt === null && (
-              <BuildPrompt
-                busy={busy || promptBusy}
-                onBuild={() => void handleBuild()}
-              />
-            )}
-
-            {prompt !== null && (
-              <PromptArtifact
-                value={prompt}
-                versions={versions}
-                activeVersionId={activeVersionId}
-                busy={promptBusy}
-                canRefine={online && !busyGenerating}
-                interpretationChanged={pendingSync}
-                updatedCue={updatedCue}
-                onChange={handlePromptChange}
-                onSelectVersion={handleSelectVersion}
-                onToggleFavorite={handleToggleFavorite}
-                onUpdatePrompt={handleUpdatePrompt}
-                onRefine={openRefine}
-              />
-            )}
-
-            {activeVersion && saveLabel && (
-              <p
-                role="status"
-                className={`text-xs ${
-                  saveState === "error" ? "text-fg" : "text-muted"
-                }`}
-              >
-                {saveLabel}
-                {activeVersion.source === "manual-edit" &&
-                  saveState === "saved" && " · draft committed"}
+    <AppShell
+      sidebar={
+        <ChatSidebar
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onSelect={handleSelectSession}
+          onNewChat={handleNewChat}
+          onDelete={handleDeleteSession}
+        />
+      }
+      aside={(close) => (
+        <SavedPromptsRail
+          favorites={favoriteCards}
+          onOpen={handleOpenGroup}
+          onUnfavorite={handleToggleFavorite}
+          onClose={close}
+        />
+      )}
+    >
+      <main className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col justify-center gap-8 px-6 py-10">
+          {fields === null ? (
+            <section className="mx-auto flex w-full max-w-2xl flex-col items-center gap-3 text-center">
+              <h1 className="text-2xl font-extrabold tracking-tight text-fg">
+                What are you trying to get done?
+              </h1>
+              <p className="text-sm text-muted">
+                Messy is fine. No perfect prompt needed.
               </p>
-            )}
+            </section>
+          ) : (
+            <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+              <section className="flex flex-col gap-2">
+                <h2 className="text-sm font-semibold text-muted">Your thought</h2>
+                <ThoughtInput
+                  value={thought}
+                  onChange={setThought}
+                  onSubmit={handleSubmit}
+                  busy={busy}
+                  labelHidden
+                  rows={2}
+                  placeholder="Your rough thought"
+                />
+              </section>
 
-            {errorKind && (
-              <div className="flex flex-col gap-1 rounded-xl border border-line bg-panel px-4 py-3">
-                <p className="text-sm font-semibold text-fg">
-                  {errorCopy[errorKind].headline}
+              <section className="flex flex-col gap-3">
+                <h2 className="text-sm font-semibold text-muted">
+                  What I understood
+                </h2>
+                <Interpretation
+                  fields={fields}
+                  onChange={handleFieldChange}
+                  disabled={busy || promptBusy}
+                />
+              </section>
+
+              {question !== null && (
+                <FollowUpQuestion
+                  question={question}
+                  questionCount={questionCount}
+                  busy={busy}
+                  onContinue={handleContinue}
+                />
+              )}
+
+              {question === null && prompt === null && (
+                <BuildPrompt
+                  busy={busy || promptBusy}
+                  onBuild={() => void handleBuild()}
+                />
+              )}
+
+              {prompt !== null && (
+                <PromptArtifact
+                  value={prompt}
+                  versions={versions}
+                  activeVersionId={activeVersionId}
+                  busy={promptBusy}
+                  canRefine={online && !busyGenerating}
+                  interpretationChanged={pendingSync}
+                  updatedCue={updatedCue}
+                  onChange={handlePromptChange}
+                  onSelectVersion={handleSelectVersion}
+                  onToggleFavorite={handleToggleFavorite}
+                  onUpdatePrompt={handleUpdatePrompt}
+                  onRefine={openRefine}
+                />
+              )}
+
+              {activeVersion && saveLabel && (
+                <p
+                  role="status"
+                  className={`text-xs ${
+                    saveState === "error" ? "text-fg" : "text-muted"
+                  }`}
+                >
+                  {saveLabel}
+                  {activeVersion.source === "manual-edit" &&
+                    saveState === "saved" && " · draft committed"}
                 </p>
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={retryError}
-                    disabled={busyGenerating}
-                    className="rounded-full bg-green px-4 py-1.5 text-xs font-semibold text-bg transition-opacity disabled:opacity-40"
-                  >
-                    Try again
-                  </button>
-                  {errorCopy[errorKind].quiet && (
-                    <span className="text-xs text-muted">
-                      {errorCopy[errorKind].quiet}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
 
-      {/* Sticky composer: pinned near the bottom, safe-area aware. */}
-      <div className="sticky bottom-0 z-10 border-t border-line bg-bg px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
-          {prompt !== null && (
-            <div
-              className="flex items-center gap-1"
-              role="group"
-              aria-label="Composer mode"
-            >
-              <button
-                type="button"
-                aria-pressed={effectiveMode === "create"}
-                onClick={() => setComposerMode("create")}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                  effectiveMode === "create"
-                    ? "border-green text-fg"
-                    : "border-line text-muted hover:border-green hover:text-fg"
-                }`}
-              >
-                Reshape
-              </button>
-              <button
-                type="button"
-                aria-pressed={effectiveMode === "refine"}
-                onClick={() => setComposerMode("refine")}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                  effectiveMode === "refine"
-                    ? "border-green text-fg"
-                    : "border-line text-muted hover:border-green hover:text-fg"
-                }`}
-              >
-                Refine
-              </button>
+              {errorKind && (
+                <div className="flex flex-col gap-1 rounded-xl border border-line bg-panel px-4 py-3">
+                  <p className="text-sm font-semibold text-fg">
+                    {errorCopy[errorKind].headline}
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={retryError}
+                      disabled={busyGenerating}
+                      className="rounded-full bg-green px-4 py-1.5 text-xs font-semibold text-bg transition-opacity disabled:opacity-40"
+                    >
+                      Try again
+                    </button>
+                    {errorCopy[errorKind].quiet && (
+                      <span className="text-xs text-muted">
+                        {errorCopy[errorKind].quiet}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-          <Composer
-            value={composerText}
-            onChange={setComposerText}
-            onSubmit={handleComposerSubmit}
-            mode={effectiveMode}
-            busy={busyGenerating}
-            online={online}
-            onExpand={() => setExpandOpen(true)}
-            placeholder={
-              effectiveMode === "create"
-                ? "Describe it however it comes to mind…"
-                : "Describe the change… e.g. shorten it, add an offline requirement"
-            }
-          />
         </div>
-      </div>
 
-      <ExpandedComposer
-        open={expandOpen}
-        value={composerText}
-        onChange={setComposerText}
-        onSubmit={handleComposerSubmit}
-        onClose={() => setExpandOpen(false)}
-        mode={effectiveMode}
-        busy={busyGenerating}
-        online={online}
-      />
-    </main>
+        {/* Sticky composer: pinned near the bottom, safe-area aware. */}
+        <div className="sticky bottom-0 z-10 border-t border-line bg-bg px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
+            {prompt !== null && (
+              <div
+                className="flex items-center gap-1"
+                role="group"
+                aria-label="Composer mode"
+              >
+                <button
+                  type="button"
+                  aria-pressed={effectiveMode === "create"}
+                  onClick={() => setComposerMode("create")}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                    effectiveMode === "create"
+                      ? "border-green text-fg"
+                      : "border-line text-muted hover:border-green hover:text-fg"
+                  }`}
+                >
+                  Reshape
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={effectiveMode === "refine"}
+                  onClick={() => setComposerMode("refine")}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                    effectiveMode === "refine"
+                      ? "border-green text-fg"
+                      : "border-line text-muted hover:border-green hover:text-fg"
+                  }`}
+                >
+                  Refine
+                </button>
+              </div>
+            )}
+            <Composer
+              value={composerText}
+              onChange={setComposerText}
+              onSubmit={handleComposerSubmit}
+              mode={effectiveMode}
+              busy={busyGenerating}
+              online={online}
+              onExpand={() => setExpandOpen(true)}
+              placeholder={
+                effectiveMode === "create"
+                  ? "Describe it however it comes to mind…"
+                  : "Describe the change… e.g. shorten it, add an offline requirement"
+              }
+            />
+          </div>
+        </div>
+
+        <ExpandedComposer
+          open={expandOpen}
+          value={composerText}
+          onChange={setComposerText}
+          onSubmit={handleComposerSubmit}
+          onClose={() => setExpandOpen(false)}
+          mode={effectiveMode}
+          busy={busyGenerating}
+          online={online}
+        />
+      </main>
+    </AppShell>
   );
 }
 
