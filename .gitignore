@@ -56,3 +56,6 @@ next-env.d.ts
 
 # local headless verification harnesses (agent-run, not product)
 /.verify-*.mjs
+
+# Demo script (personal, not part of the product)
+/script.md
