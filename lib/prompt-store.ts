@@ -1,4 +1,4 @@
-import { Dock, Field } from "./types";
+import { Attachment, Dock, Field } from "./types";
 
 /**
  * Versioned prompt library on IndexedDB.
@@ -53,6 +53,7 @@ export interface SessionState {
   composerText: string;
   composerMode: "create" | "refine";
   activeVersionId: string | null;
+  attachments: Attachment[];
 }
 
 export interface ChatSession {

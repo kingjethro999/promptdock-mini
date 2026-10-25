@@ -223,6 +223,7 @@ async function main(): Promise<void> {
     composerText: "half-typed follow-up",
     composerMode: "create" as const,
     activeVersionId: null,
+    attachments: [],
   };
   const sessionA = {
     id: "session-a",

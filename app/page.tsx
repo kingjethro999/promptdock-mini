@@ -6,6 +6,7 @@ import { BuildPrompt } from "../components/BuildPrompt";
 import { ChatSidebar } from "../components/ChatSidebar";
 import { Composer } from "../components/Composer";
 import { ExpandedComposer } from "../components/ExpandedComposer";
+import type { Attachment } from "../lib/types";
 import { FollowUpQuestion } from "../components/FollowUpQuestion";
 import { Interpretation } from "../components/Interpretation";
 import { PromptArtifact } from "../components/PromptArtifact";
@@ -40,6 +41,7 @@ interface ShapePayload {
   answers: string[];
   questionCount: number;
   lastQuestion: string | null;
+  attachments?: Attachment[];
 }
 
 type ErrorKind = "shape" | "build-first" | "build-regen" | "refine" | null;
@@ -83,6 +85,7 @@ export default function Home() {
   const [composerText, setComposerText] = useState("");
   const [composerMode, setComposerMode] = useState<ComposerMode>("create");
   const [expandOpen, setExpandOpen] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const [errorKind, setErrorKind] = useState<ErrorKind>(null);
   const [thinkingStage, setThinkingStage] = useState<ThinkingStageName | null>(
@@ -170,6 +173,7 @@ export default function Home() {
     setPendingSync(st.pendingSync);
     setComposerText(st.composerText);
     setComposerMode(st.composerMode);
+    setAttachments(st.attachments ?? []);
     if (st.activeVersionId) {
       activeVersionRef.current = st.activeVersionId;
       setActiveVersionId(st.activeVersionId);
@@ -224,6 +228,7 @@ export default function Home() {
     setComposerText("");
     setComposerMode("create");
     setExpandOpen(false);
+    setAttachments([]);
     setGroupId(null);
     setVersions([]);
     setActiveVersionId(null);
@@ -372,6 +377,7 @@ export default function Home() {
       composerText,
       composerMode,
       activeVersionId,
+      attachments,
     }),
     [
       thought,
@@ -385,6 +391,7 @@ export default function Home() {
       composerText,
       composerMode,
       activeVersionId,
+      attachments,
     ],
   );
 
@@ -519,6 +526,7 @@ export default function Home() {
       const data = (await res.json()) as ShapeResponse;
       setThought(payload.thought);
       setComposerText("");
+      setAttachments([]);
       setFields(data.interpretation.fields);
       const asksAgain =
         data.needsFollowUp &&
@@ -549,12 +557,25 @@ export default function Home() {
     // Keep the text in the composer until the request succeeds: a refresh
     // mid-flight then restores the input instead of dropping it.
     setThought(next);
+    // Text-file contents are injected as context client-side (read at attach
+    // time); images ride alongside as base64 and are routed to Gemini
+    // (vision-capable only).
+    let thought = next;
+    const imageAttachments: Attachment[] = [];
+    for (const att of attachments) {
+      if (att.kind === "text") {
+        thought += `\n\n--- Attached file: ${att.name} ---\n${att.dataUrl}`;
+      } else {
+        imageAttachments.push(att);
+      }
+    }
     void runShape({
-      thought: next,
+      thought,
       interpretation: isReshape && fields ? { fields } : undefined,
       answers: isReshape ? answers : [],
       questionCount: isReshape ? questionCount : 0,
       lastQuestion: isReshape ? question : null,
+      attachments: imageAttachments,
     });
   }
 
@@ -901,6 +922,7 @@ export default function Home() {
           composerText: "",
           composerMode: "create",
           activeVersionId: latest?.id ?? null,
+          attachments: [],
         },
       };
       await applySession(fresh);
@@ -1145,6 +1167,8 @@ export default function Home() {
               busy={busyGenerating}
               online={online}
               onExpand={() => setExpandOpen(true)}
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
               placeholder={
                 effectiveMode === "create"
                   ? "Describe it however it comes to mind…"

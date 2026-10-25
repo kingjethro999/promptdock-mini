@@ -1,5 +1,6 @@
 import { completeParsed } from "../../../lib/ai";
 import {
+  Attachment,
   MAX_QUESTIONS,
   MIN_THOUGHT_CHARS,
   ShapeResponse,
@@ -14,6 +15,37 @@ const MAX_THOUGHT_LENGTH = 6000;
 
 function invalidBody(detail: string): Response {
   return Response.json({ error: "invalid_body", detail }, { status: 400 });
+}
+
+function coerceAttachments(
+  input: Record<string, unknown>,
+): Attachment[] | undefined {
+  const raw = input.attachments;
+  if (!Array.isArray(raw)) return undefined;
+  const attachments: Attachment[] = [];
+  for (const item of raw) {
+    if (
+      typeof item === "object" &&
+      item !== null &&
+      typeof (item as Record<string, unknown>).id === "string" &&
+      typeof (item as Record<string, unknown>).kind === "string" &&
+      typeof (item as Record<string, unknown>).name === "string" &&
+      typeof (item as Record<string, unknown>).type === "string" &&
+      typeof (item as Record<string, unknown>).size === "number" &&
+      typeof (item as Record<string, unknown>).dataUrl === "string"
+    ) {
+      const a = item as Record<string, unknown>;
+      attachments.push({
+        id: a.id as string,
+        kind: a.kind as Attachment["kind"],
+        name: a.name as string,
+        type: a.type as string,
+        size: a.size as number,
+        dataUrl: a.dataUrl as string,
+      });
+    }
+  }
+  return attachments;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -35,6 +67,8 @@ export async function POST(request: Request): Promise<Response> {
   ) {
     return invalidBody("thought missing or out of range");
   }
+
+  const attachments = coerceAttachments(input);
 
   const answers: string[] = Array.isArray(input.answers)
     ? input.answers
@@ -84,10 +118,12 @@ export async function POST(request: Request): Promise<Response> {
     lastQuestion,
   });
 
-  let chain;
+  let chain: { value: ShapeResponse } | undefined;
   try {
     chain = await completeParsed(SHAPE_SYSTEM_PROMPT, user, {
       json: true,
+      attachments,
+      maxTokens: attachments?.some((a) => a.kind === "image") ? 4096 : undefined,
       parse: (text) => {
         const parsed = parseShapeResponse(text);
         if (!parsed.ok) throw new Error(parsed.reason);
@@ -98,7 +134,10 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "ai_unavailable" }, { status: 502 });
   }
 
-  const value: ShapeResponse = chain.value;
+  const value: ShapeResponse = chain?.value;
+  if (!value) {
+    return Response.json({ error: "ai_unavailable" }, { status: 502 });
+  }
   if (questionCount >= MAX_QUESTIONS || answers.length >= MAX_QUESTIONS) {
     return Response.json({
       interpretation: value.interpretation,

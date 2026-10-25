@@ -34,9 +34,22 @@ export interface Dock {
   updatedAt: number;
 }
 
+export type AttachmentKind = "image" | "text";
+
+export interface Attachment {
+  id: string;
+  kind: AttachmentKind;
+  name: string;
+  type: string; // mime type
+  size: number;
+  dataUrl: string; // base64 data URL
+}
+
 export const MIN_THOUGHT_CHARS = 3;
 export const MAX_QUESTIONS = 3;
 export const MAX_DOCKS = 10;
+export const MAX_ATTACHMENTS = 5;
+export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024; // 4 MiB per file
 export const STORAGE_KEYS = {
   docks: "pmd.docks",
   theme: "pmd.theme",

@@ -7,6 +7,25 @@ export interface Completion {
   latencyMs: number;
 }
 
+export type ContentPart = { type: "text"; text: string } | {
+  type: "image_url";
+  image_url: { url: string };
+};
+
+export type MessageContent = string | ContentPart[];
+
+interface ChatMessage {
+  role: "system" | "user";
+  content: MessageContent;
+}
+
+interface ChatBody {
+  model: string;
+  messages: ChatMessage[];
+  response_format?: { type: "json_object" };
+  max_tokens?: number;
+}
+
 export interface ProviderAttempt {
   provider: ProviderName;
   reason: string;
@@ -42,6 +61,8 @@ const DEFAULTS: Record<ProviderName, { baseUrl: string; model: string }> = {
     model: "gemini-2.5-flash",
   },
 };
+
+import { Attachment } from "./types";
 
 const KEYS: Record<ProviderName, string> = {
   apmix: "APMIX_API_KEY",
@@ -92,7 +113,7 @@ function requestTimeoutMs(): number {
 
 interface ChatBody {
   model: string;
-  messages: { role: "system" | "user"; content: string }[];
+  messages: ChatMessage[];
   response_format?: { type: "json_object" };
 }
 
@@ -160,6 +181,39 @@ export interface CompleteOptions {
   timeoutMs?: number;
   json?: boolean;
   providers?: ProviderName[];
+  /** Attachments (images + text). Images force Gemini-only routing. */
+  attachments?: Attachment[];
+  maxTokens?: number;
+}
+
+/** Build the user message content: text parts plus image parts. */
+function buildUserContent(
+  user: string,
+  attachments: Attachment[] | undefined,
+): MessageContent {
+  const parts: ContentPart[] = [{ type: "text", text: user }];
+  if (attachments) {
+    for (const att of attachments) {
+      if (att.kind === "image") {
+        parts.push({ type: "image_url", image_url: { url: att.dataUrl } });
+      }
+    }
+  }
+  return parts.length > 1 ? parts : user;
+}
+
+/**
+ * When any attachment is an image, only Gemini supports vision — pin the
+ * provider order to gemini so we never send image bytes to a text-only
+ * endpoint.
+ */
+function providerOrderForAttachments(
+  attachments: Attachment[] | undefined,
+  requested: ProviderName[],
+): ProviderName[] {
+  const hasImage = attachments?.some((a) => a.kind === "image") ?? false;
+  if (!hasImage) return requested;
+  return ["gemini"];
 }
 
 interface ChainResult<T> {
@@ -176,7 +230,10 @@ async function runChain<T>(
   transform: (text: string) => T,
 ): Promise<ChainResult<T>> {
   const timeoutMs = options.timeoutMs ?? requestTimeoutMs();
-  const order = options.providers ?? providerOrder();
+  const order = providerOrderForAttachments(
+    options.attachments,
+    options.providers ?? providerOrder(),
+  );
   const attempts: ProviderAttempt[] = [];
 
   for (const name of order) {
@@ -188,11 +245,15 @@ async function runChain<T>(
     const body: ChatBody = {
       model: config.model,
       messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
+        { role: "system", content: system } as ChatMessage,
+        {
+          role: "user",
+          content: buildUserContent(user, options.attachments),
+        } as ChatMessage,
+      ] as ChatMessage[],
     };
     if (options.json) body.response_format = { type: "json_object" };
+    if (options.maxTokens) body.max_tokens = options.maxTokens;
 
     const started = Date.now();
     const result = await postChat(config, body, timeoutMs);
