@@ -10,6 +10,7 @@ import { FollowUpQuestion } from "../components/FollowUpQuestion";
 import { Interpretation } from "../components/Interpretation";
 import { PromptArtifact } from "../components/PromptArtifact";
 import { SavedPromptsRail } from "../components/SavedPromptsRail";
+import { ThinkingStage } from "../components/ThinkingStage";
 import { ThoughtInput } from "../components/ThoughtInput";
 import { useOnlineStatus } from "../lib/online-status";
 import {
@@ -44,6 +45,7 @@ interface ShapePayload {
 type ErrorKind = "shape" | "build-first" | "build-regen" | "refine" | null;
 type SaveState = "idle" | "saving" | "saved" | "error";
 type ComposerMode = "create" | "refine";
+type ThinkingStageName = "shaping" | "drafting" | "refreshing" | "refining";
 
 const DRAFT_KEY = "pmd.draft";
 const SESSION_KEY = "pmd.session";
@@ -83,6 +85,9 @@ export default function Home() {
   const [expandOpen, setExpandOpen] = useState(false);
 
   const [errorKind, setErrorKind] = useState<ErrorKind>(null);
+  const [thinkingStage, setThinkingStage] = useState<ThinkingStageName | null>(
+    null,
+  );
   const [pending, setPending] = useState<ShapePayload | null>(null);
   const cueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -500,6 +505,7 @@ export default function Home() {
   ): Promise<ShapeResponse | null> {
     const opId = ++opIdRef.current;
     setBusy(true);
+    setThinkingStage("shaping");
     setErrorKind(null);
     setPending(payload);
     try {
@@ -530,7 +536,10 @@ export default function Home() {
       if (opId === opIdRef.current) setErrorKind("shape");
       return null;
     } finally {
-      if (opId === opIdRef.current) setBusy(false);
+      if (opId === opIdRef.current) {
+        setBusy(false);
+        setThinkingStage(null);
+      }
     }
   }
 
@@ -638,6 +647,7 @@ export default function Home() {
   ): Promise<boolean> {
     const opId = ++opIdRef.current;
     setPromptBusy(true);
+    setThinkingStage("refreshing");
     setErrorKind(null);
     try {
       const next = await postBuild(buildThought, buildFields, buildAnswers);
@@ -657,7 +667,10 @@ export default function Home() {
       if (opId === opIdRef.current) setErrorKind("build-regen");
       return false;
     } finally {
-      if (opId === opIdRef.current) setPromptBusy(false);
+      if (opId === opIdRef.current) {
+        setPromptBusy(false);
+        setThinkingStage(null);
+      }
     }
   }
 
@@ -665,6 +678,7 @@ export default function Home() {
     if (fields === null) return;
     const opId = ++opIdRef.current;
     setPromptBusy(true);
+    setThinkingStage("drafting");
     setErrorKind(null);
     try {
       const next = await postBuild(thought, fields, answers);
@@ -682,7 +696,10 @@ export default function Home() {
     } catch {
       if (opId === opIdRef.current) setErrorKind("build-first");
     } finally {
-      if (opId === opIdRef.current) setPromptBusy(false);
+      if (opId === opIdRef.current) {
+        setPromptBusy(false);
+        setThinkingStage(null);
+      }
     }
   }
 
@@ -692,6 +709,7 @@ export default function Home() {
     if (prompt === null || !online) return false;
     const opId = ++opIdRef.current;
     setPromptBusy(true);
+    setThinkingStage("refining");
     setErrorKind(null);
     try {
       const res = await fetch("/api/refine", {
@@ -734,7 +752,10 @@ export default function Home() {
       }
       return false;
     } finally {
-      if (opId === opIdRef.current) setPromptBusy(false);
+      if (opId === opIdRef.current) {
+        setPromptBusy(false);
+        setThinkingStage(null);
+      }
     }
   }
 
@@ -1075,6 +1096,9 @@ export default function Home() {
                 </div>
               )}
             </div>
+          )}
+          {thinkingStage && (
+            <ThinkingStage stage={thinkingStage} className="mx-auto" />
           )}
         </div>
 
